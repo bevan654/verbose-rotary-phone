@@ -490,6 +490,26 @@
         const GEN_BATCH = 20;
         const MAX_GEN_TOTAL = 170; // most questions allowed in a single generation
 
+        // Difficulty calibration for AI generation, tuned to a single undergraduate controls course.
+        const LEVEL_META = {
+            1: "Very easy warm-up / prerequisite recall. A basic definition or fact a student should already know. One short sentence answers it.",
+            2: "Basic control concept from a first read of the notes — a simple 'what is…' definition or a straightforward idea.",
+            3: "Standard pass-level concept: explain a core idea of the topic in plain words — mostly the 'what', with a little 'why'.",
+            4: "Application & understanding: the 'how' and 'why' — when/why you'd use something, what a concept means in practice, or linking two concepts together.",
+            5: "Harder synthesis: connect multiple concepts or explain a deeper 'why', but still answerable in plain spoken words with no maths."
+        };
+
+        // Condensed reference from the actual ENGR3711/9721 course, so generated questions stay on-syllabus.
+        const COURSE_NOTES = `Root Locus (Topic 11): the paths closed-loop poles trace in the s-plane as gain K goes 0→∞; used to read transient response (damping, overshoot, rise time), stability ranges, steady-state error, and achievable performance. Open-loop transfer function KG(s)H(s) vs closed-loop characteristic equation 1+KGH=0. At K=0 closed-loop poles sit on the open-loop poles; as K→∞ they move to open-loop zeros or to infinity. Sketching rules: number of branches = number of poles; branches start at poles and end at zeros or infinity; locus is symmetric about the real axis (complex poles are conjugate pairs); a real-axis segment is on the locus if it is to the left of an odd number of poles+zeros; branches to infinity follow straight-line asymptotes; branches never cross; the Routh array gives the exact K where the locus crosses the jω-axis (the stability limit). A point is on the locus when the angle condition holds (sum of zero angles minus sum of pole angles = an odd multiple of 180°) and the magnitude condition |KGH|=1. Asymptote directions by excess poles n−m: 1→180°; 2→±90°; 3→±60° plus 180° (three-pole systems are risky, the 60° asymptotes can push branches into the right-half plane → instability); 4→±45°/±135°. Zeros can "capture" poles and help stabilise. Routh array also finds the critical gain where a system goes unstable.
+Frequency Domain (Topic 13): study the response to sinusoidal inputs; use Bode and Nyquist plots to find gain and phase margins (relative stability), handle time delays, and design filters/controllers. Digital sampling has amplitude quantisation and a sampling rate; aliasing happens when the sampling rate is too low so a high-frequency signal masquerades as a low-frequency one and is then irrecoverable; the Nyquist criterion requires sampling at more than twice the highest frequency present. Signal decomposition: constant = DC/zero frequency; sine = single frequency; square wave = odd harmonics; impulse = all frequencies; noise = all frequencies with random phase. Nyquist stability is judged by encirclement of the (−1,0) point; first- and second-order systems are stable for all K>0, but third-order systems have a finite gain margin and go unstable for large enough K. The frequency domain turns convolution into multiplication and is the better tool for delays and relative stability.
+Design goals throughout: control overshoot, rise time, steady-state error, and keep all poles in the left-half plane for stability.`;
+
+        // A few of the user's own seed questions at a given level, used to anchor AI difficulty.
+        function exampleQuestionsForLevel(level, n) {
+            const all = (QUESTION_BANKS.official && QUESTION_BANKS.official.questions || []).filter(q => q.level === level);
+            return [...all].sort(() => Math.random() - 0.5).slice(0, n).map(q => q.text);
+        }
+
         // ==================== STATE ====================
         const MASTER_TOPICS = Array.from(new Set(Object.values(QUESTION_BANKS).flatMap(b => b.topics)));
         let savedBanks = [];
@@ -690,6 +710,41 @@
         // ==================== BANK VIEWER & EDITOR ====================
         const GOT_WRONG_ID = 'got-wrong';
         const GOT_PARTIAL_ID = 'got-partial';
+        const FLAGGED_ID = 'flagged';
+
+        function normText(t) { return (t || '').trim().toLowerCase(); }
+
+        function isFlagged(q) {
+            const bank = savedBanks.find(b => b.id === FLAGGED_ID);
+            return !!bank && bank.pool.some(x => normText(x.text) === normText(q.text));
+        }
+
+        // Toggle a question in the persistent "Flagged for Study" bank.
+        function toggleFlag(q) {
+            let bank = savedBanks.find(b => b.id === FLAGGED_ID);
+            const key = normText(q.text);
+            if (bank && bank.pool.some(x => normText(x.text) === key)) {
+                bank.pool = bank.pool.filter(x => normText(x.text) !== key);
+                recomputeBankMeta(bank);
+            } else {
+                if (!bank) {
+                    bank = { id: FLAGGED_ID, name: 'Flagged for Study', date: new Date().toISOString(), topics: [], split: {}, pool: [], custom: true };
+                    savedBanks.unshift(bank);
+                }
+                bank.pool.push({
+                    id: 'flag-' + Date.now(),
+                    level: q.level,
+                    topic: q.topic,
+                    text: q.text,
+                    concept: q.concept || q.answer || q.text,
+                    answer: q.answer || ''
+                });
+                recomputeBankMeta(bank);
+            }
+            saveBanks();
+            refreshBankSelect();
+            if (currentBankId === FLAGGED_ID) selectBank(currentBankId);
+        }
         let modalBankId = null;        // bank currently shown in the modal
         let editingQuestionId = null;  // question being edited in the modal (or null)
 
@@ -788,14 +843,22 @@
         function buildViewCard(bank, q, editable) {
             const card = document.createElement('div');
             card.className = 'p-3 rounded-xl bg-slate-800/40 border border-slate-700/50 mb-2';
+            const flagged = isFlagged(q);
             card.innerHTML = `
                 <div class="flex items-center gap-2 mb-1">
                     <span class="px-2 py-0.5 rounded text-xs font-mono bg-slate-800 text-accent">L${q.level}</span>
                     <span class="text-xs text-slate-400 flex-1">${escapeHtml(q.topic)}</span>
+                    <button class="flag-btn shrink-0 ${flagged ? 'text-warning' : 'text-slate-500 hover:text-warning'}" title="${flagged ? 'Remove study flag' : 'Flag for study'}">
+                        <svg class="w-4 h-4" fill="${flagged ? 'currentColor' : 'none'}" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 21v-4m0 0V5a2 2 0 012-2h6.28a1 1 0 01.948.684l.272.632a1 1 0 00.948.684H19a2 2 0 012 2v6a2 2 0 01-2 2h-6.28a1 1 0 01-.948-.684l-.272-.632A1 1 0 0010.6 13H5a2 2 0 00-2 2z"></path></svg>
+                    </button>
                 </div>
                 <p class="text-sm text-slate-200">${escapeHtml(q.text)}</p>
                 ${q.answer ? `<p class="text-xs text-success/90 mt-2"><span class="text-slate-500">Answer: </span>${escapeHtml(q.answer)}</p>` : ''}
             `;
+            card.querySelector('.flag-btn').addEventListener('click', () => {
+                toggleFlag(q);
+                renderBankModal();
+            });
             if (editable) {
                 const actions = document.createElement('div');
                 actions.className = 'flex gap-3 mt-2';
@@ -1129,10 +1192,24 @@
         }
 
         async function aiGenerateBatch(level, count, topics) {
-            const systemPrompt = "You are a Control Systems professor writing questions for a CONCEPTUAL, SPOKEN oral exam. The student answers OUT LOUD and CANNOT write equations, derive formulas, perform calculations, draw plots or diagrams, or read a specific transfer function. Every question must therefore be answerable verbally with words and intuition alone. STRICTLY AVOID any question that: asks to derive, calculate, compute, solve, evaluate, or find a numeric value; references a specific equation or transfer function; supplies numbers to work with; or asks to sketch, plot, or draw anything. Instead ask conceptual prompts: definitions, the meaning of a concept, why/when/how a technique is used, qualitative effects, comparisons, trade-offs, and intuition. Respond ONLY with a valid JSON array — no markdown fences, no commentary.";
-            const userPrompt = `Generate ${count} distinct Level ${level} control systems oral-exam questions. ` +
+            const systemPrompt = "You are setting a CONCEPTUAL, SPOKEN oral exam for ONE introductory undergraduate Control Systems course. " +
+                "Scope is strictly that course: open vs closed loop, modelling mechanical/electrical systems, linearisation, Laplace transforms, transfer functions & block diagrams, time-domain response (overshoot, settling time, steady-state error), feedback, stability (poles, Routh-Hurwitz), root locus, basic compensators (P/PI/PD/PID, lead/lag), and an introduction to Bode/Nyquist. " +
+                "Do NOT use graduate-level or signal-processing-only material such as region of convergence, state-space/observers, LQR, H-infinity, Nyquist encirclement proofs, or anything not in a first controls course. " +
+                "FOCUS ON CONCEPTS: test understanding, linking concepts, and the 'how' and 'why' of implementations — never rote maths. " +
+                "The student answers OUT LOUD, so every question must be answerable in plain spoken words with NO calculations, NO deriving, NO specific equations or transfer functions, NO numbers to compute, and NO sketching/plotting. " +
+                "Keep questions short and clear. Base questions on THIS course's actual material below and do not go beyond it:\n" + COURSE_NOTES + "\n" +
+                "Respond ONLY with a valid JSON array — no markdown fences, no commentary.";
+
+            const examples = exampleQuestionsForLevel(level, 3);
+            const exampleLine = examples.length
+                ? `Match the difficulty and style of these example Level ${level} questions: ${examples.map(t => `"${t}"`).join(' ')} `
+                : '';
+
+            const userPrompt = `Generate ${count} distinct Level ${level} questions. ` +
+                `Level ${level} means: ${LEVEL_META[level]} ` +
+                exampleLine +
                 `Use ONLY these topics: ${topics.join('; ')}. ` +
-                `Every question must be PURELY CONCEPTUAL and answerable in spoken words. ` +
+                `Keep them purely conceptual and answerable in spoken words. ` +
                 `Each array element must be an object with exactly these keys: ` +
                 `"topic" (one of the listed topics), "text" (a single-sentence conceptual question), ` +
                 `"concept" (a 3-8 word summary of the core concepts a correct answer must include), and ` +
@@ -1284,16 +1361,25 @@
         }
 
         // ==================== EXAM SESSION ====================
+        function pickFromLevel(lvl) {
+            const candidates = questionPool.filter(q => q.level === lvl && !askedIds.has(q.id));
+            return candidates.length ? candidates[Math.floor(Math.random() * candidates.length)] : null;
+        }
+
         function pickNextQuestion(level) {
-            for (let d = 0; d < 5; d++) {
-                const levelsToTry = d === 0 ? [level] : [level - d, level + d];
-                for (const lvl of levelsToTry) {
-                    if (lvl < 1 || lvl > 5) continue;
-                    const candidates = questionPool.filter(q => q.level === lvl && !askedIds.has(q.id));
-                    if (candidates.length > 0) {
-                        return candidates[Math.floor(Math.random() * candidates.length)];
-                    }
-                }
+            // Prefer the current level, then progressively EASIER levels.
+            for (let lvl = level; lvl >= 1; lvl--) {
+                const q = pickFromLevel(lvl);
+                if (q) return q;
+            }
+            // Bottomed out: if the bank actually has Level 1 questions (now all used up),
+            // the student has failed out of the easiest questions → end the exam.
+            const poolHasL1 = questionPool.some(q => q.level === 1);
+            if (level <= 1 && poolHasL1) return null;
+            // Otherwise (e.g. a bank with no easy questions) fall through to harder levels.
+            for (let lvl = level + 1; lvl <= 5; lvl++) {
+                const q = pickFromLevel(lvl);
+                if (q) return q;
             }
             return null;
         }
