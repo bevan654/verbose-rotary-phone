@@ -1,0 +1,2038 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Control Systems Oral Exam</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        dark: '#0f172a',
+                        darker: '#020617',
+                        accent: '#38bdf8',
+                        accent2: '#818cf8',
+                        success: '#4ade80',
+                        warning: '#fbbf24',
+                        danger: '#f87171',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        .fade-in { animation: fadeIn 0.4s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .glass-panel {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255,255,255,0.08);
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #38bdf8 0%, #818cf8 100%);
+            transition: all 0.3s ease;
+        }
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(56,189,248,0.3); }
+        .btn-danger {
+            background: linear-gradient(135deg, #f87171 0%, #ef4444 100%);
+            transition: all 0.3s ease;
+        }
+        .btn-danger:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(248,113,113,0.3); }
+        .recording-pulse {
+            animation: pulse-ring 1.5s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+        }
+        @keyframes pulse-ring {
+            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(248,113,113,0.7); }
+            70% { transform: scale(1); box-shadow: 0 0 0 15px rgba(248,113,113,0); }
+            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(248,113,113,0); }
+        }
+        .level-indicator {
+            width: 8px; height: 8px; border-radius: 50%;
+            transition: all 0.3s ease;
+        }
+        .level-active { background: #38bdf8; box-shadow: 0 0 8px #38bdf8; }
+        .level-inactive { background: #334155; }
+        .transcript-box {
+            border-left: 3px solid #38bdf8;
+            background: rgba(56,189,248,0.05);
+        }
+        .verdict-correct { color: #4ade80; border-color: #4ade80; background: rgba(74,222,128,0.05); }
+        .verdict-partial { color: #fbbf24; border-color: #fbbf24; background: rgba(251,191,36,0.05); }
+        .verdict-incorrect { color: #f87171; border-color: #f87171; background: rgba(248,113,113,0.05); }
+        .hidden-view { display: none !important; }
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
+        .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+        input:focus, select:focus, textarea:focus { outline: none; border-color: #38bdf8; box-shadow: 0 0 0 3px rgba(56,189,248,0.15); }
+        .checkbox-wrapper input:checked + div { background: #38bdf8; border-color: #38bdf8; }
+        .checkbox-wrapper input:checked + div svg { display: block; }
+    </style>
+</head>
+<body class="bg-darker text-slate-200 min-h-screen">
+
+    <!-- ==================== PASSCODE GATE ==================== -->
+    <div id="passcode-gate" class="fixed inset-0 z-[100] bg-darker flex items-center justify-center p-6">
+        <div class="glass-panel rounded-2xl p-8 max-w-sm w-full text-center">
+            <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-accent to-accent2 flex items-center justify-center text-white font-bold text-lg mx-auto mb-4">CS</div>
+            <h1 class="text-xl font-semibold text-white mb-1">Control Systems Oral Exam</h1>
+            <p class="text-sm text-slate-400 mb-6">Enter the access passcode to continue.</p>
+            <input id="gate-input" type="password" placeholder="Passcode" autocomplete="off" class="w-full bg-slate-800/50 border border-slate-700 rounded-xl px-4 py-3 text-white text-sm mb-3 text-center">
+            <button id="gate-submit" class="w-full btn-primary text-white font-semibold py-3 px-6 rounded-xl text-sm">Enter</button>
+            <p id="gate-error" class="text-xs text-danger mt-3 min-h-[1rem]"></p>
+        </div>
+    </div>
+
+    <nav class="fixed top-0 left-0 right-0 z-50 glass-panel border-b border-white/5">
+        <div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-accent to-accent2 flex items-center justify-center text-white font-bold text-lg">CS</div>
+                <div>
+                    <h1 class="text-lg font-semibold text-white tracking-tight">Control Systems</h1>
+                    <p class="text-xs text-slate-400">Oral Exam Revision Tool</p>
+                </div>
+            </div>
+            <div id="nav-status" class="flex items-center gap-4 text-sm">
+                <span id="nav-bank" class="text-slate-400">No bank selected</span>
+            </div>
+        </div>
+    </nav>
+
+    <main class="pt-24 pb-12 px-6 max-w-7xl mx-auto">
+
+        <div id="view-dashboard" class="fade-in">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                
+                <div class="lg:col-span-2 space-y-6">
+                    <div class="glass-panel rounded-2xl p-6">
+                        <h2 class="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                            <svg class="w-5 h-5 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+                            Question Bank
+                        </h2>
+                        <select id="bank-select" class="w-full bg-slate-800/50 border border-slate-700 rounded-xl px-4 py-3 text-white text-sm transition-colors">
+                            </select>
+                        <div class="flex gap-3 mt-3">
+                            <button id="btn-view-bank" class="flex-1 bg-slate-700 hover:bg-slate-600 text-white font-medium py-2 px-4 rounded-xl text-sm transition-all">View Questions</button>
+                            <button id="btn-delete-bank" class="bg-slate-800 hover:bg-danger/20 text-danger font-medium py-2 px-4 rounded-xl text-sm transition-all border border-danger/30">Delete</button>
+                        </div>
+                        <p class="text-xs text-slate-500 mt-2">Switch between, view, or delete your question sets.</p>
+                    </div>
+
+                    <div class="glass-panel rounded-2xl p-6">
+                        <h2 class="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                            <svg class="w-5 h-5 text-accent2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path></svg>
+                            Topic Filters
+                        </h2>
+                        <div id="topic-checkboxes" class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                            </div>
+                        <p class="text-xs text-slate-500 mt-3">Select topics to include in your exam session.</p>
+                    </div>
+
+                    <div class="glass-panel rounded-2xl p-6">
+                        <h2 class="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                            <svg class="w-5 h-5 text-warning" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                            Question Set Generation (Optional)
+                        </h2>
+                        <div class="grid grid-cols-5 gap-3">
+                            <div><label class="block text-xs text-slate-400 mb-1 text-center">L1</label><input id="split-1" type="number" min="0" max="300" value="11" class="w-full bg-slate-800/50 border border-slate-700 rounded-lg px-2 py-2 text-white text-sm text-center font-mono transition-colors"></div>
+                            <div><label class="block text-xs text-slate-400 mb-1 text-center">L2</label><input id="split-2" type="number" min="0" max="300" value="27" class="w-full bg-slate-800/50 border border-slate-700 rounded-lg px-2 py-2 text-white text-sm text-center font-mono transition-colors"></div>
+                            <div><label class="block text-xs text-slate-400 mb-1 text-center">L3</label><input id="split-3" type="number" min="0" max="300" value="48" class="w-full bg-slate-800/50 border border-slate-700 rounded-lg px-2 py-2 text-white text-sm text-center font-mono transition-colors"></div>
+                            <div><label class="block text-xs text-slate-400 mb-1 text-center">L4</label><input id="split-4" type="number" min="0" max="300" value="60" class="w-full bg-slate-800/50 border border-slate-700 rounded-lg px-2 py-2 text-white text-sm text-center font-mono transition-colors"></div>
+                            <div><label class="block text-xs text-slate-400 mb-1 text-center">L5</label><input id="split-5" type="number" min="0" max="300" value="24" class="w-full bg-slate-800/50 border border-slate-700 rounded-lg px-2 py-2 text-white text-sm text-center font-mono transition-colors"></div>
+                        </div>
+                        <div class="flex justify-between items-center mt-4 text-sm">
+                            <span class="text-slate-400">Total questions to generate</span>
+                            <span id="split-total" class="text-white font-mono text-lg">170</span>
+                        </div>
+                        <p class="text-xs text-slate-500 mt-2">Set how many questions DeepSeek generates per difficulty level if you choose to build a new bank. Maximum 170 questions per generation.</p>
+                    </div>
+
+                    <!-- Import Question Bank from CSV -->
+                    <div class="glass-panel rounded-2xl p-6">
+                        <h2 class="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                            <svg class="w-5 h-5 text-success" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                            Import Question Bank (CSV)
+                        </h2>
+                        <div class="space-y-3">
+                            <input id="csv-name" type="text" placeholder="Bank name (optional — defaults to file name)" class="w-full bg-slate-800/50 border border-slate-700 rounded-xl px-4 py-3 text-white text-sm transition-colors">
+                            <input id="csv-file" type="file" accept=".csv,text/csv" class="w-full text-sm text-slate-400 file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-slate-700 file:text-white hover:file:bg-slate-600 file:cursor-pointer cursor-pointer">
+                            <button id="btn-import-csv" class="w-full btn-primary text-white font-semibold py-2 px-4 rounded-xl text-sm">Import CSV</button>
+                        </div>
+                        <p id="csv-status" class="text-xs text-slate-500 mt-2 min-h-[1rem]"></p>
+                        <p class="text-xs text-slate-500 mt-1">Columns (header row required): <code class="text-accent">text</code>, <code class="text-accent">level</code> (1–5), <code class="text-accent">topic</code>, <code class="text-accent">answer</code> (optional). Only <code class="text-accent">text</code> is mandatory.</p>
+                    </div>
+                </div>
+
+                <div class="space-y-6">
+                    <div class="glass-panel rounded-2xl p-6">
+                        <h2 class="text-lg font-semibold text-white mb-4">Session Preview</h2>
+                        <div class="space-y-3 text-sm">
+                            <div class="flex justify-between"><span class="text-slate-400">Questions Available</span><span id="preview-count" class="text-white font-mono">0</span></div>
+                            <div class="flex justify-between"><span class="text-slate-400">Topics Selected</span><span id="preview-topics" class="text-white font-mono">0</span></div>
+                            <div class="flex justify-between"><span class="text-slate-400">Difficulty Range</span><span class="text-white font-mono">L1 — L5</span></div>
+                            <div class="flex justify-between items-center"><span class="text-slate-400">Time Limit</span><span class="flex items-center gap-2"><input id="exam-duration" type="number" min="1" max="120" value="10" class="w-16 bg-slate-800/50 border border-slate-700 rounded-lg px-2 py-1 text-white text-sm text-right font-mono transition-colors"><span class="text-slate-400">min</span></span></div>
+                        </div>
+                        <div class="mt-6 space-y-3">
+                            <button id="btn-generate" class="w-full btn-primary text-white font-semibold py-3 px-6 rounded-xl text-sm flex items-center justify-center gap-2">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                                Generate New Set (Requires AI)
+                            </button>
+                            <button id="btn-start" class="w-full bg-slate-700 text-slate-300 font-semibold py-3 px-6 rounded-xl text-sm flex items-center justify-center gap-2 cursor-not-allowed opacity-50" disabled>
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                Start Exam
+                            </button>
+                            <button id="btn-learn" class="w-full bg-accent2/20 text-accent2 border border-accent2/40 font-semibold py-3 px-6 rounded-xl text-sm flex items-center justify-center gap-2 hover:bg-accent2/30 transition-all">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
+                                Learn Mode (this topic)
+                            </button>
+                            <p id="generate-status" class="text-xs text-slate-400 text-center min-h-[1rem]"></p>
+                        </div>
+                    </div>
+
+                    <div class="glass-panel rounded-2xl p-6">
+                        <h2 class="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                            <svg class="w-5 h-5 text-success" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"></path></svg>
+                            AI Configuration
+                        </h2>
+                        <div class="space-y-4">
+                            <p class="text-xs text-slate-500">AI grading & generation run through a secure server function — the DeepSeek key is set on the server (Vercel env var) and is never exposed in your browser. You unlocked the app with your passcode at the start.</p>
+                            <div>
+                                <label class="block text-xs font-medium text-slate-400 mb-1">Microphone Language</label>
+                                <select id="mic-lang" class="w-full bg-slate-800/50 border border-slate-700 rounded-xl px-4 py-3 text-white text-sm transition-colors">
+                                    <option value="en-AU">English (Australia)</option>
+                                    <option value="en-US">English (US)</option>
+                                    <option value="en-GB">English (UK)</option>
+                                    <option value="en-IN">English (India)</option>
+                                    <option value="en-NZ">English (New Zealand)</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="glass-panel rounded-2xl p-6">
+                        <h2 class="text-lg font-semibold text-white mb-4">Past Sessions</h2>
+                        <div id="past-sessions" class="space-y-2 max-h-64 overflow-y-auto scrollbar-hide">
+                            <p class="text-sm text-slate-500 text-center py-4">No sessions yet</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="view-exam" class="hidden-view">
+            <div class="max-w-4xl mx-auto pt-8">
+                <div class="flex justify-center mb-6">
+                    <div class="glass-panel rounded-full px-5 py-2 text-sm font-mono text-accent flex items-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        <span id="exam-timer">10:00</span>
+                    </div>
+                </div>
+                <div class="text-center mb-12">
+                    <div id="exam-question-text" class="text-3xl md:text-5xl font-light text-white leading-relaxed tracking-tight min-h-[200px] flex items-center justify-center"></div>
+                </div>
+                <div id="transcript-container" class="max-w-2xl mx-auto mb-8 hidden">
+                    <div class="transcript-box rounded-xl p-4">
+                        <p class="text-xs text-accent uppercase tracking-wider font-semibold mb-2">Your Response</p>
+                        <p id="live-transcript" class="text-slate-300 text-sm leading-relaxed"></p>
+                    </div>
+                </div>
+                <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
+                    <button id="btn-record" class="w-16 h-16 rounded-full bg-slate-800 border-2 border-slate-600 flex items-center justify-center text-slate-300 hover:border-accent hover:text-accent transition-all">
+                        <svg id="mic-icon" class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"></path></svg>
+                    </button>
+                    <button id="btn-next" class="btn-primary text-white font-semibold py-4 px-10 rounded-2xl text-base flex items-center gap-3">
+                        <span>Next Question</span>
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path></svg>
+                    </button>
+                    <button id="btn-skip" class="py-4 px-6 rounded-2xl text-slate-400 hover:text-white hover:bg-slate-800/50 transition-all text-sm font-medium">Skip</button>
+                    <button id="btn-stop-exam" class="btn-danger text-white font-semibold py-3 px-6 rounded-2xl text-sm flex items-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 10a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z"></path></svg>
+                        Stop Exam
+                    </button>
+                </div>
+                <p id="exam-status" class="text-center text-sm text-accent mt-6 h-5"></p>
+            </div>
+        </div>
+
+        <!-- ==================== LEARN MODE VIEW ==================== -->
+        <div id="view-learn" class="hidden-view">
+            <div class="max-w-4xl mx-auto pt-8">
+                <div class="flex flex-wrap justify-center items-center gap-3 mb-6">
+                    <span id="learn-topic" class="glass-panel rounded-full px-4 py-2 text-sm text-accent2"></span>
+                    <span id="learn-level" class="glass-panel rounded-full px-4 py-2 text-sm font-mono text-accent"></span>
+                    <span id="learn-stats" class="glass-panel rounded-full px-4 py-2 text-sm text-slate-400"></span>
+                </div>
+
+                <div class="text-center mb-8">
+                    <div id="learn-question-text" class="text-2xl md:text-4xl font-light text-white leading-relaxed min-h-[140px] flex items-center justify-center"></div>
+                </div>
+
+                <div id="learn-transcript-container" class="max-w-2xl mx-auto mb-6 hidden">
+                    <div class="transcript-box rounded-xl p-4">
+                        <p class="text-xs text-accent uppercase tracking-wider font-semibold mb-2">Your Response</p>
+                        <p id="learn-transcript" class="text-slate-300 text-sm leading-relaxed"></p>
+                    </div>
+                </div>
+
+                <div id="learn-feedback" class="max-w-2xl mx-auto mb-6 hidden">
+                    <div id="learn-verdict" class="rounded-xl p-4 border mb-3"></div>
+                    <div class="rounded-xl p-4 bg-success/5 border border-success/30">
+                        <p class="text-xs text-success uppercase tracking-wider font-semibold mb-2">Model Answer</p>
+                        <p id="learn-answer" class="text-slate-200 text-sm leading-relaxed"></p>
+                    </div>
+                </div>
+
+                <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
+                    <button id="btn-learn-record" class="w-16 h-16 rounded-full bg-slate-800 border-2 border-slate-600 flex items-center justify-center text-slate-300 hover:border-accent hover:text-accent transition-all">
+                        <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"></path></svg>
+                    </button>
+                    <button id="btn-learn-check" class="btn-primary text-white font-semibold py-4 px-10 rounded-2xl text-base">Check Answer</button>
+                    <button id="btn-learn-reveal" class="py-4 px-6 rounded-2xl text-slate-400 hover:text-white hover:bg-slate-800/50 transition-all text-sm font-medium">Reveal Answer</button>
+                    <button id="btn-learn-next" class="btn-primary text-white font-semibold py-4 px-10 rounded-2xl text-base hidden flex items-center gap-2">Next Question</button>
+                    <button id="btn-learn-end" class="btn-danger text-white font-semibold py-3 px-6 rounded-2xl text-sm">End</button>
+                </div>
+
+                <p id="learn-status" class="text-center text-sm text-accent mt-6 h-5"></p>
+                <p class="text-center text-xs text-slate-600 mt-1">Speak your answer, then Check to get feedback — difficulty adapts as you go.</p>
+            </div>
+        </div>
+
+        <div id="view-review" class="hidden-view">
+            <div class="max-w-5xl mx-auto space-y-8">
+                <div class="glass-panel rounded-2xl p-8 text-center">
+                    <p class="text-sm text-slate-400 uppercase tracking-widest mb-2">Final Grade</p>
+                    <div class="flex items-center justify-center gap-4">
+                        <div id="final-grade" class="text-7xl font-bold text-white">--</div>
+                        <div class="text-left">
+                            <p class="text-sm text-slate-400">Average of last 3 questions</p>
+                            <p id="grade-label" class="text-lg font-semibold text-accent">--</p>
+                        </div>
+                    </div>
+                    <div class="mt-6 flex items-center justify-center gap-6 text-sm">
+                        <span class="text-slate-400">Total Questions: <span id="review-total-q" class="text-white">0</span></span>
+                        <span class="text-slate-400">Time Used: <span id="review-time" class="text-white">0:00</span></span>
+                    </div>
+                </div>
+
+                <div class="glass-panel rounded-2xl p-6">
+                    <h3 class="text-lg font-semibold text-white mb-4">Difficulty Level Trajectory</h3>
+                    <div class="h-64 w-full">
+                        <canvas id="difficulty-chart"></canvas>
+                    </div>
+                </div>
+
+                <div class="glass-panel rounded-2xl p-6">
+                    <h3 class="text-lg font-semibold text-white mb-4">Session Receipts</h3>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-sm">
+                            <thead>
+                                <tr class="border-b border-slate-700 text-slate-400">
+                                    <th class="pb-3 pr-4">#</th>
+                                    <th class="pb-3 pr-4">Question</th>
+                                    <th class="pb-3 pr-4">Level</th>
+                                    <th class="pb-3 pr-4">Transcript</th>
+                                    <th class="pb-3 pr-4">Verdict</th>
+                                    <th class="pb-3 pr-4">Score</th>
+                                    <th class="pb-3 pr-4">AI Critique</th>
+                                    <th class="pb-3">Correct Answer</th>
+                                </tr>
+                            </thead>
+                            <tbody id="receipts-body"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="flex flex-wrap justify-center gap-4 pb-8">
+                    <button id="btn-back-dashboard" class="btn-primary text-white font-semibold py-3 px-8 rounded-xl text-sm">
+                        Back to Dashboard
+                    </button>
+                    <button id="btn-add-wrong" class="bg-danger/20 text-danger border border-danger/40 font-semibold py-3 px-8 rounded-xl text-sm hover:bg-danger/30 transition-all">
+                        Add Wrong → "Got Wrong" Bank
+                    </button>
+                    <button id="btn-add-partial" class="bg-warning/20 text-warning border border-warning/40 font-semibold py-3 px-8 rounded-xl text-sm hover:bg-warning/30 transition-all">
+                        Add Partials → "Got Partial" Bank
+                    </button>
+                    <button id="btn-download-session" class="bg-slate-700 text-white font-semibold py-3 px-8 rounded-xl text-sm hover:bg-slate-600 transition-all">
+                        Download JSON
+                    </button>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- ==================== BANK VIEWER MODAL ==================== -->
+    <div id="bank-modal" class="hidden-view fixed inset-0 z-[60] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="glass-panel rounded-2xl max-w-3xl w-full max-h-[85vh] flex flex-col">
+            <div class="flex items-center justify-between p-6 border-b border-white/10">
+                <div>
+                    <h3 id="bank-modal-title" class="text-lg font-semibold text-white">Question Bank</h3>
+                    <p id="bank-modal-sub" class="text-xs text-slate-400 mt-1"></p>
+                </div>
+                <button id="btn-close-bank-modal" class="text-slate-400 hover:text-white text-3xl leading-none px-2">&times;</button>
+            </div>
+            <div id="bank-modal-body" class="p-6 overflow-y-auto scrollbar-hide"></div>
+        </div>
+    </div>
+
+    <script>
+        // ==================== DATA ====================
+        const QUESTION_BANKS = {
+            official: {
+                name: "Official Control Bank",
+                topics: ["Intro to Control", "Mathematical Models", "Laplace Transforms", "Transfer Functions & Block Diagrams", "Time Domain Response", "Feedback Control", "Stability Analysis", "Root Locus", "Compensator Design", "Frequency Response", "Nyquist Plots", "Freq. Design & Delays"],
+                questions: [
+                    // LEVEL 1
+                    { id: "o1", level: 1, topic: "Intro to Control", text: "What are some pros and cons of a closed loop control?", concept: "Pros: Robust to disturbances, doesn't require perfect plant model. Cons: Complex, difficult to tune, more expensive." },
+                    { id: "o2", level: 1, topic: "Intro to Control", text: "What are some pros and cons of an open loop control?", concept: "Pros: Simplest form of control, inexpensive. Cons: Does not account for disturbances, does not verify target output is reached." },
+                    { id: "o3", level: 1, topic: "Laplace Transforms", text: "What are the poles and zeros of a system?", concept: "Poles make the transfer function denominator zero; zeros make the numerator zero. They determine system stability and performance." },
+                    { id: "o4", level: 1, topic: "Laplace Transforms", text: "How can you determine the order of the system?", concept: "By finding the highest exponent in the denominator of the transfer function." },
+                    { id: "o5", level: 1, topic: "Transfer Functions & Block Diagrams", text: "What is a block diagram of a system?", concept: "A visual representation of the internal structure and input/output relationships of a system." },
+                    { id: "o6", level: 1, topic: "Time Domain Response", text: "What is the time to steady state of a system?", concept: "The time it takes for a system to reach and stay within 2% (or 98%) of its final continuous value." },
+                    { id: "o7", level: 1, topic: "Feedback Control", text: "What is feedback control?", concept: "The process of using measured information about the operation of a plant to adjust and control it." },
+                    { id: "o8", level: 1, topic: "Feedback Control", text: "Why is feedback or closed loop control used?", concept: "To reduce sensitivity to plant changes, make the system robust to disturbances, decrease steady-state error, and stabilize unstable plants." },
+
+                    // LEVEL 2
+                    { id: "o9", level: 2, topic: "Frequency Response", text: "What are the 3 components of a sinusoid?", concept: "Amplitude, Frequency, and Phase." },
+                    { id: "o10", level: 2, topic: "Compensator Design", text: "What are the 3 components of PID control?", concept: "Proportional (reacts to current error), Integral (accumulates past error), and Derivative (predicts future error based on rate of change)." },
+                    { id: "o11", level: 2, topic: "Intro to Control", text: "What is the difference between SISO and MIMO systems?", concept: "SISO has a single input and single output, whereas MIMO has multiple inputs and multiple outputs." },
+                    { id: "o12", level: 2, topic: "Mathematical Models", text: "Explain how the mass spring damper system and a resistor capacitor and inductor circuit are similar?", concept: "They have the exact same underlying mathematical representation. Mass relates to a Capacitor, Damper to a Resistor, and Spring to an Inductor." },
+                    { id: "o13", level: 2, topic: "Laplace Transforms", text: "What is the time shift theorem in Laplace Transforms?", concept: "Time shifting a function by -T is equivalent to multiplying by the exponential e^-sT in the Laplace domain." },
+                    { id: "o14", level: 2, topic: "Laplace Transforms", text: "Why do we use the Laplace Transform in Control Systems?", concept: "To convert complex linear differential equations into simpler algebraic equations." },
+                    { id: "o15", level: 2, topic: "Time Domain Response", text: "How do you find the time to steady-state for a 1st order system?", concept: "It is approximately 4 times the time constant." },
+                    { id: "o16", level: 2, topic: "Time Domain Response", text: "If the transfer function of a system was a 1st order equation what would the step response look like?", concept: "A simple exponential decay tracking toward a steady-state value." },
+                    { id: "o17", level: 2, topic: "Stability Analysis", text: "How can you tell if a system is stable?", concept: "If all its poles lie on the left side of the s-plane (i.e., real parts are strictly less than zero)." },
+                    { id: "o18", level: 2, topic: "Frequency Response", text: "What does a Fourier Transform do to a signal?", concept: "It represents time-varying signals by their individual component frequencies." },
+                    { id: "o19", level: 2, topic: "Frequency Response", text: "What is the bandwidth of a system?", concept: "The range of frequencies where the output magnitude remains within +/- 3dB of a reference value." },
+                    { id: "o20", level: 2, topic: "Frequency Response", text: "What is the fundamental component all signals can be decomposed into?", concept: "A sum of sinusoids with different amplitudes, frequencies, and phases." },
+                    { id: "o21", level: 2, topic: "Mathematical Models", text: "What does it mean for a system to be LTI?", concept: "Linear Time-Invariant. It satisfies superposition/homogeneity, and its properties do not change over time." },
+                    { id: "o22", level: 2, topic: "Mathematical Models", text: "What equations are used to model mechanical systems?", concept: "Newton's second law and equations of motion." },
+                    { id: "o23", level: 2, topic: "Mathematical Models", text: "What equations are used to model electrical systems?", concept: "Ohm's law, Kirchhoff's Current Law (KCL), and Kirchhoff's Voltage Law (KVL)." },
+                    { id: "o24", level: 2, topic: "Laplace Transforms", text: "What is the derivative theorem in Laplace transforms?", concept: "Multiply the Laplace transform of the function by s and subtract the initial value at time zero." },
+                    { id: "o25", level: 2, topic: "Laplace Transforms", text: "What is the Integral theorem in Laplace transforms?", concept: "Divide the Laplace transform of the function by s." },
+                    { id: "o26", level: 2, topic: "Transfer Functions & Block Diagrams", text: "How does the impulse response of a system relate to its transfer function?", concept: "The transfer function is the exact Laplace transform of the system's impulse response." },
+                    { id: "o27", level: 2, topic: "Transfer Functions & Block Diagrams", text: "What is a transfer function of a system?", concept: "The mathematical ratio of the output to the input in the Laplace domain with zero initial conditions." },
+
+                    // LEVEL 3
+                    { id: "o28", level: 3, topic: "Mathematical Models", text: "What is system linearization and what does that mean?", concept: "Finding a linear approximation of a non-linear system around a specific operating point to simplify analysis." },
+                    { id: "o29", level: 3, topic: "Root Locus", text: "What is a root locus?", concept: "A graphical plot in the complex s-plane showing all possible closed-loop pole locations as a system parameter (like gain) varies." },
+                    { id: "o30", level: 3, topic: "Stability Analysis", text: "What is a Routh array?", concept: "A tabular algebraic method to determine stability using only the coefficients of the characteristic polynomial." },
+                    { id: "o31", level: 3, topic: "Time Domain Response", text: "What is a Natural Response of a system?", concept: "The zero-input response generated purely by initial conditions and system dynamics." },
+                    { id: "o32", level: 3, topic: "Time Domain Response", text: "What is a Forced Response in a system?", concept: "The component of the system response that takes the same form as the applied input signal." },
+                    { id: "o33", level: 3, topic: "Time Domain Response", text: "What is steady state error of a system?", concept: "The final difference between the desired target value and the actual system value after transient dynamics have decayed." },
+                    { id: "o34", level: 3, topic: "Time Domain Response", text: "How does step response relate to the Transfer function?", concept: "If you multiply the transfer function by 1/s (an integrator) and take the inverse Laplace, you get the step response." },
+                    { id: "o35", level: 3, topic: "Time Domain Response", text: "What are the steady-state step and ramp errors for a type 0 system?", concept: "Finite steady-state step error, but an infinite ramp error." },
+                    { id: "o36", level: 3, topic: "Time Domain Response", text: "What are the steady-state step and ramp errors for a type 1 system?", concept: "Zero steady-state step error, but a finite ramp error." },
+                    { id: "o37", level: 3, topic: "Time Domain Response", text: "What are the steady-state step and ramp errors for a type 2 system?", concept: "Zero steady-state step error and zero steady-state ramp error." },
+                    { id: "o38", level: 3, topic: "Mathematical Models", text: "What does system approximation mean and when can it be used?", concept: "Approximating a high-order system using only its dominant (slowest) poles, ignoring fast non-dominant dynamics." },
+                    { id: "o39", level: 3, topic: "Stability Analysis", text: "If you can use MATLAB to find system roots why would you need a Routh Array?", concept: "To calculate an unknown parameter boundary, like the exact range of gain K that keeps the system stable." },
+                    { id: "o40", level: 3, topic: "Root Locus", text: "As the system gain gets larger what happens to the branches of the root locus?", concept: "They terminate at the open-loop zeros or shoot off to infinity along their asymptotes." },
+                    { id: "o41", level: 3, topic: "Root Locus", text: "How many branches will the root locus of a system have?", concept: "The number of branches is strictly equal to the number of open-loop poles." },
+                    { id: "o42", level: 3, topic: "Root Locus", text: "What can a root locus be used for?", concept: "To qualitatively visualize how altering system components (like gain) affects closed-loop transient response and stability." },
+                    { id: "o43", level: 3, topic: "Frequency Response", text: "How can you determine the order of a system by looking at the Bode plot?", concept: "By observing the high-frequency asymptote slopes; each 20dB/dec magnitude drop corresponds to an additional pole." },
+
+                    // LEVEL 4
+                    { id: "o44", level: 4, topic: "Transfer Functions & Block Diagrams", text: "Why do the block diagram reduction techniques only work for linear systems?", concept: "They rely entirely on the principles of superposition and homogeneity, which do not apply to non-linear systems." },
+                    { id: "o45", level: 4, topic: "Time Domain Response", text: "What are the modes that make up any real order system?", concept: "First-order modes corresponding to real poles, and second-order modes corresponding to complex conjugate pole pairs." },
+                    { id: "o46", level: 4, topic: "Stability Analysis", text: "What does the location of the poles and zeros on the s-plane tell you about the dynamics of the system?", concept: "Proximity to the origin dictates speed (closer is slower), and left/right half placement dictates stability." },
+                    { id: "o47", level: 4, topic: "Time Domain Response", text: "What is the damped frequency of a system and how does it relate to the natural frequency?", concept: "It is the actual, observed frequency of oscillation that decays over time, unlike the theoretical undamped natural frequency." },
+                    { id: "o48", level: 4, topic: "Feedback Control", text: "How is a high level of disturbance rejection obtained in a control system?", concept: "By using closed-loop feedback combined with very large controller gains." },
+                    { id: "o49", level: 4, topic: "Feedback Control", text: "What is system sensitivity and how is it different between open- and closed-loop control?", concept: "Ratio of change in transfer function to change in plant. Closed-loop control heavily reduces sensitivity compared to open-loop." },
+                    { id: "o50", level: 4, topic: "Compensator Design", text: "How can required performance be achieved in a system if the goal point is not on the root locus?", concept: "By adding an active compensator (adding zeros and poles) to bend and reshape the root locus to hit the desired point." },
+                    { id: "o51", level: 4, topic: "Root Locus", text: "Is an open loop stable 2nd order system (with no delay) always stable for all system gains?", concept: "Yes, its two asymptotes travel vertically at 90 degrees, keeping the branches trapped entirely in the stable left half plane." },
+                    { id: "o52", level: 4, topic: "Root Locus", text: "What is the root locus angular requirement?", concept: "For a point to exist on the locus, the sum of zero angles minus the sum of pole angles must exactly equal an odd multiple of 180 degrees." },
+                    { id: "o53", level: 4, topic: "Root Locus", text: "When will a segment of the real axis be on the root locus?", concept: "If it lies to the left of an odd number of combined open-loop poles and zeros." },
+                    { id: "o54", level: 4, topic: "Root Locus", text: "Why is the root locus always symmetrical about the real axis?", concept: "Because complex poles and zeros always exist as mirrored conjugate pairs." },
+                    { id: "o55", level: 4, topic: "Compensator Design", text: "What does pole, or zero, placement mean in the context of designing a control system?", concept: "Adding compensators to force the closed-loop poles into specific target locations when the physical plant cannot be changed." },
+                    { id: "o56", level: 4, topic: "Compensator Design", text: "What effect will increasing the I component of a PID compensator have on: rise time, overshoot, settling time and steady-state error?", concept: "Decreases rise time, increases overshoot, increases settling time, and completely eliminates steady-state error." },
+                    { id: "o57", level: 4, topic: "Compensator Design", text: "What effect will increasing the P component of a PID compensator have on: rise time, overshoot, settling time and steady-state error?", concept: "Decreases rise time, increases overshoot, minor change to settling time, and decreases steady-state error." },
+                    { id: "o58", level: 4, topic: "Compensator Design", text: "What is pole cancellation and why is it rarely done in practice?", concept: "Attempting to place a zero perfectly over a slow pole. It is rarely done because perfect parameter estimation is impossible, risking instability." },
+                    { id: "o59", level: 4, topic: "Compensator Design", text: "When would a PD be a good compensator to use?", concept: "To improve the transient or temporal dynamics of a system, such as speeding it up or reducing overshoot." },
+                    { id: "o60", level: 4, topic: "Compensator Design", text: "When would a PI be a good compensator to use?", concept: "Primarily used to drastically reduce or entirely eliminate steady-state error." },
+                    { id: "o61", level: 4, topic: "Freq. Design & Delays", text: "Algebraically how does a transfer system with time delay compare to one without?", concept: "It maintains the exact same magnitude response but suffers a severe, linear phase delay (modeled as an exponential e^-sT)." },
+                    { id: "o62", level: 4, topic: "Frequency Response", text: "How does the damping ratio of a 2nd order system affect the Bode plot?", concept: "A lower damping ratio produces a sharper phase transition and a massive resonant peak in magnitude at the natural frequency." },
+                    { id: "o63", level: 4, topic: "Freq. Design & Delays", text: "If a time delay were inserted into a 2nd order system would the overshoot get larger or smaller?", concept: "Larger. The delay erodes the phase margin, effectively decreasing the damping ratio and causing a more oscillatory response." },
+                    { id: "o64", level: 4, topic: "Frequency Response", text: "What are the gain and phase margins of a system and how would you determine them?", concept: "Gain margin is measured at the 180-degree phase crossover; Phase margin is measured at the 0dB gain crossover. Both indicate distance to instability." },
+                    { id: "o65", level: 4, topic: "Nyquist Plots", text: "What is Contour mapping and why would it be used?", concept: "Mapping a closed contour from the s-plane to the GH-plane to see if it encircles (-1,0), visually proving closed-loop stability." },
+                    { id: "o66", level: 4, topic: "Nyquist Plots", text: "What is the Nyquist Stability Criterion?", concept: "Z = N + P. The system is stable if the counter-clockwise encirclements (N) cancel out the unstable open-loop poles (P), resulting in Z=0." },
+
+                    // LEVEL 5
+                    { id: "o67", level: 5, topic: "Compensator Design", text: "How would you design a controller for a non-linear system that operated over a range larger than a linearization model would be accurate for?", concept: "Utilize robust control techniques like phase-lead in the frequency domain to massively boost phase margin, or use gain scheduling." },
+                    { id: "o68", level: 5, topic: "Root Locus", text: "How can a 3rd order system (with no delay) be made stable for all system gains?", concept: "By aggressively placing an open-loop zero to the right of your fastest pole, pulling the runaway asymptotes back into the stable left half plane." },
+                    { id: "o69", level: 5, topic: "Root Locus", text: "What shape could the asymptotes of the root locus branches take if the system has 4 poles and no zeroes?", concept: "They will form an X-shape, breaking away at 45 degrees and 135 degrees relative to the real axis." },
+                    { id: "o70", level: 5, topic: "Compensator Design", text: "When would a full PID compensator be used?", concept: "When a high-order system requires simultaneous correction of both its rapid temporal performance and its steady-state tracking error." },
+                    { id: "o71", level: 5, topic: "Compensator Design", text: "Why is it not always possible to get the exact calculated performance from a system, even with a PID controller?", concept: "Due to physical actuator limitations (clipping high gains) and hidden, unmodeled time delays that induce real-world instability." },
+                    { id: "o72", level: 5, topic: "Frequency Response", text: "How can a 2nd order system decrease the frequency range the phase transition occurs over and what effect will this have on the magnitude?", concept: "By dropping the damping ratio (becoming heavily underdamped), which radically spikes the magnitude resonance peak at the natural frequency." },
+                    { id: "o73", level: 5, topic: "Freq. Design & Delays", text: "Why did the proportional controller become unstable in practical 1 when the motor is a 1st order system?", concept: "The digital controller's low sampling rate acted as a severe, unmodeled time delay, injecting phase lag that destroyed the stability margins." },
+                    { id: "o74", level: 5, topic: "Frequency Response", text: "What is aliasing and why is it detrimental for system analysis and control?", concept: "When sampling below the Nyquist rate (< 2x max frequency), high-frequency noise masquerades as low-frequency signals, destroying control calculations." },
+                    { id: "o75", level: 5, topic: "Freq. Design & Delays", text: "What compensator design methodology is best Suited when a system has significant time delay and why?", concept: "Frequency domain design using Bode plots, because pure time delays can be effortlessly modeled as a linear phase lag without guessing complex root locations." }
+                ]
+            },
+            custom: {
+                name: "Custom Practice Bank",
+                topics: ["State Space", "Stability Analysis", "Nonlinear Control", "Digital Control"],
+                questions: [
+                    { id: "c1", level: 1, topic: "State Space", text: "What are the two main equations that define a state-space representation?", concept: "state space equations" },
+                    { id: "c2", level: 1, topic: "State Space", text: "Define the state vector of a system.", concept: "state vector definition" },
+                    { id: "c3", level: 1, topic: "Stability Analysis", text: "What is the definition of BIBO stability?", concept: "BIBO stability definition" },
+                    { id: "c4", level: 1, topic: "Stability Analysis", text: "Where must the poles of a stable LTI system be located in the s-plane?", concept: "pole location stability" }
+                ]
+            }
+        };
+
+        // ==================== GENERATION CONFIG ====================
+        let targetSplit = { 1: 11, 2: 27, 3: 48, 4: 60, 5: 24 };
+        const totalTarget = () => Object.values(targetSplit).reduce((a, b) => a + Number(b || 0), 0);
+        const GEN_BATCH = 20;
+        const MAX_GEN_TOTAL = 170; // most questions allowed in a single generation
+
+        // ==================== STATE ====================
+        const MASTER_TOPICS = Array.from(new Set(Object.values(QUESTION_BANKS).flatMap(b => b.topics)));
+        let savedBanks = [];
+        let currentBankId = 'official';
+        let selectedTopics = new Set();
+        let questionPool = [];
+        let askedIds = new Set();
+        let currentQuestion = null;
+        let currentLevel = 3;
+        let sessionScores = [];
+        let sessionLog = [];
+        let timerInterval = null;
+        let examDuration = 10;
+        let timeRemaining = 600;
+        let recognition = null;
+        let recognitionLang = 'en-AU';
+        let isRecording = false;
+        let manualStop = false; // true when the user (not an error) stopped recording
+        let currentTranscript = "";
+        let finalTranscript = "";
+        let chartInstance = null;
+        let sessionStartTime = null;
+        let examBusy = false;
+        let gradingChain = Promise.resolve();
+        let learnQuestion = null;  // current question in Learn Mode
+        let learnStats = { correct: 0, partial: 0, wrong: 0, total: 0 };
+        let learnTopics = [];      // topics chosen for the Learn Mode session
+        let learnSeen = new Set(); // texts already shown, to avoid AI repeats
+
+        // ==================== DOM ELEMENTS ====================
+        const views = {
+            dashboard: document.getElementById('view-dashboard'),
+            exam: document.getElementById('view-exam'),
+            learn: document.getElementById('view-learn'),
+            review: document.getElementById('view-review')
+        };
+
+        // ==================== INITIALIZATION ====================
+        function init() {
+            loadSettings();
+            loadBanks();
+            populateTopics();
+            loadPastSessions();
+            setupSpeechRecognition();
+            refreshBankSelect();
+            selectBank(currentBankId);
+
+            document.getElementById('bank-select').addEventListener('change', (e) => {
+                currentBankId = e.target.value || 'official';
+                selectBank(currentBankId);
+                saveSettings();
+            });
+
+            document.getElementById('btn-generate').addEventListener('click', generateQuestionSet);
+            document.getElementById('btn-start').addEventListener('click', startExam);
+            document.getElementById('btn-learn').addEventListener('click', startLearnMode);
+            document.getElementById('btn-learn-record').addEventListener('click', toggleRecording);
+            document.getElementById('btn-learn-check').addEventListener('click', checkLearnAnswer);
+            document.getElementById('btn-learn-reveal').addEventListener('click', revealLearnAnswer);
+            document.getElementById('btn-learn-next').addEventListener('click', showLearnQuestion);
+            document.getElementById('btn-learn-end').addEventListener('click', endLearn);
+            document.getElementById('btn-stop-exam').addEventListener('click', stopExam);
+            document.getElementById('btn-next').addEventListener('click', nextQuestion);
+            document.getElementById('btn-skip').addEventListener('click', skipQuestion);
+            document.getElementById('btn-record').addEventListener('click', toggleRecording);
+            document.getElementById('btn-back-dashboard').addEventListener('click', backToDashboard);
+            document.getElementById('btn-download-session').addEventListener('click', downloadSession);
+            document.getElementById('btn-add-wrong').addEventListener('click', addWrongToBank);
+            document.getElementById('btn-add-partial').addEventListener('click', addPartialToBank);
+
+            document.getElementById('btn-view-bank').addEventListener('click', openBankModal);
+            document.getElementById('btn-delete-bank').addEventListener('click', deleteBank);
+            document.getElementById('btn-close-bank-modal').addEventListener('click', closeBankModal);
+            document.getElementById('bank-modal').addEventListener('click', (e) => {
+                if (e.target.id === 'bank-modal') closeBankModal(); // click backdrop to close
+            });
+
+            document.getElementById('btn-import-csv').addEventListener('click', importCsvFile);
+
+            for (let l = 1; l <= 5; l++) {
+                document.getElementById('split-' + l).addEventListener('change', () => {
+                    readSplitInputs();
+                    saveSettings();
+                });
+            }
+
+            document.getElementById('mic-lang').addEventListener('change', (e) => {
+                recognitionLang = e.target.value;
+                if (recognition) recognition.lang = recognitionLang;
+                saveSettings();
+            });
+            setupGate();
+        }
+
+        function populateTopics() {
+            const container = document.getElementById('topic-checkboxes');
+            container.innerHTML = '';
+
+            MASTER_TOPICS.forEach(topic => {
+                const wrapper = document.createElement('label');
+                wrapper.className = 'checkbox-wrapper flex items-center gap-3 p-3 rounded-xl bg-slate-800/30 border border-slate-700/50 cursor-pointer hover:bg-slate-800/50 transition-all';
+                wrapper.innerHTML = `
+                    <input type="checkbox" value="${topic}" class="hidden" ${selectedTopics.has(topic) ? 'checked' : ''}>
+                    <div class="w-5 h-5 rounded border border-slate-500 flex items-center justify-center transition-all">
+                        <svg class="w-3 h-3 text-white hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>
+                    </div>
+                    <span class="text-sm text-slate-300">${topic}</span>
+                `;
+                wrapper.querySelector('input').addEventListener('change', (e) => {
+                    if (e.target.checked) selectedTopics.add(topic);
+                    else selectedTopics.delete(topic);
+                    selectBank(currentBankId); // Trigger pool update
+                });
+                container.appendChild(wrapper);
+            });
+        }
+
+        function updatePreview() {
+            const bank = getBankById(currentBankId);
+            document.getElementById('preview-count').textContent = questionPool.length;
+            document.getElementById('preview-topics').textContent = selectedTopics.size || MASTER_TOPICS.length;
+            document.getElementById('nav-bank').textContent = bank ? bank.name : 'No bank selected';
+        }
+
+        // ==================== BANK LOGIC ====================
+        function getBankById(id) {
+            if (id === 'official') return { ...QUESTION_BANKS.official, pool: QUESTION_BANKS.official.questions };
+            if (id === 'custom') return { ...QUESTION_BANKS.custom, pool: QUESTION_BANKS.custom.questions };
+            return savedBanks.find(b => b.id === id) || null;
+        }
+
+        function refreshBankSelect() {
+            const sel = document.getElementById('bank-select');
+            sel.innerHTML = '';
+            
+            const optOfficial = document.createElement('option');
+            optOfficial.value = 'official';
+            optOfficial.textContent = QUESTION_BANKS.official.name;
+            sel.appendChild(optOfficial);
+
+            const optCustom = document.createElement('option');
+            optCustom.value = 'custom';
+            optCustom.textContent = QUESTION_BANKS.custom.name;
+            sel.appendChild(optCustom);
+
+            savedBanks.forEach(b => {
+                const opt = document.createElement('option');
+                opt.value = b.id;
+                opt.textContent = b.name;
+                sel.appendChild(opt);
+            });
+            
+            if (!currentBankId) currentBankId = 'official';
+            sel.value = currentBankId;
+        }
+
+        function selectBank(id) {
+            const bank = getBankById(id);
+            let activePool = bank ? bank.pool : [];
+            
+            // Filter by topic if any are selected
+            if (selectedTopics.size > 0) {
+                activePool = activePool.filter(q => selectedTopics.has(q.topic));
+            }
+            
+            questionPool = activePool;
+            askedIds = new Set();
+
+            if (bank && questionPool.length > 0) {
+                const counts = [1, 2, 3, 4, 5].map(l => `L${l} ${questionPool.filter(q => q.level === l).length}`).join(', ');
+                setGenerateStatus(`"${bank.name}" loaded: ${questionPool.length} Qs available.`);
+                enableStartButton(questionPool.length);
+            } else {
+                setGenerateStatus(bank ? 'No questions match the selected topics.' : '');
+                disableStartButton();
+            }
+            updatePreview();
+        }
+
+        const START_PLAY_ICON = `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>`;
+
+        function enableStartButton(count) {
+            const btnStart = document.getElementById('btn-start');
+            btnStart.disabled = false;
+            btnStart.classList.remove('cursor-not-allowed', 'opacity-50', 'bg-slate-700', 'text-slate-300');
+            btnStart.classList.add('btn-primary', 'text-white');
+            btnStart.innerHTML = `${START_PLAY_ICON} Start Exam (${count} in pool)`;
+        }
+
+        function disableStartButton() {
+            const btnStart = document.getElementById('btn-start');
+            btnStart.disabled = true;
+            btnStart.classList.add('cursor-not-allowed', 'opacity-50', 'bg-slate-700', 'text-slate-300');
+            btnStart.classList.remove('btn-primary');
+            btnStart.innerHTML = `${START_PLAY_ICON} Start Exam`;
+        }
+
+        // ==================== BANK VIEWER & EDITOR ====================
+        const GOT_WRONG_ID = 'got-wrong';
+        const GOT_PARTIAL_ID = 'got-partial';
+        let modalBankId = null;        // bank currently shown in the modal
+        let editingQuestionId = null;  // question being edited in the modal (or null)
+
+        function escapeHtml(s) {
+            return (s || '').toString().replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+        }
+
+        function isEditableBank(id) {
+            return savedBanks.some(b => b.id === id); // built-in official/custom are read-only
+        }
+
+        function recomputeBankMeta(bank) {
+            bank.topics = Array.from(new Set(bank.pool.map(q => q.topic)));
+            const split = {};
+            [1, 2, 3, 4, 5].forEach(l => { split[l] = bank.pool.filter(q => q.level === l).length; });
+            bank.split = split;
+        }
+
+        // Reflect a saved-bank edit into persistence, the dropdown, and the live pool if selected.
+        function persistBankChange(bank) {
+            recomputeBankMeta(bank);
+            saveBanks();
+            refreshBankSelect();
+            if (bank.id === currentBankId) selectBank(currentBankId);
+        }
+
+        function openBankModal() {
+            const bank = getBankById(currentBankId);
+            if (!bank || !bank.pool || bank.pool.length === 0) {
+                alert('This bank has no questions to view yet.');
+                return;
+            }
+            modalBankId = currentBankId;
+            editingQuestionId = null;
+            renderBankModal();
+            document.getElementById('bank-modal').classList.remove('hidden-view');
+        }
+
+        function closeBankModal() {
+            // Drop a freshly-added but still-blank question if the user closes mid-edit.
+            if (editingQuestionId && modalBankId) {
+                const bank = getBankById(modalBankId);
+                const q = bank && bank.pool.find(x => x.id === editingQuestionId);
+                if (q && !q.text) { bank.pool = bank.pool.filter(x => x.id !== editingQuestionId); persistBankChange(bank); }
+            }
+            document.getElementById('bank-modal').classList.add('hidden-view');
+            editingQuestionId = null;
+        }
+
+        function renderBankModal() {
+            const bank = getBankById(modalBankId);
+            if (!bank) { closeBankModal(); return; }
+            const editable = isEditableBank(modalBankId);
+
+            document.getElementById('bank-modal-title').textContent = bank.name + (editable ? '' : '  (read-only)');
+            const counts = [1, 2, 3, 4, 5].map(l => `L${l}: ${bank.pool.filter(q => q.level === l).length}`).join('  ·  ');
+            document.getElementById('bank-modal-sub').textContent = `${bank.pool.length} questions — ${counts}`;
+
+            const body = document.getElementById('bank-modal-body');
+            body.innerHTML = '';
+
+            if (editable) {
+                const addBtn = document.createElement('button');
+                addBtn.className = 'mb-4 bg-slate-700 hover:bg-slate-600 text-white font-medium py-2 px-4 rounded-xl text-sm transition-all';
+                addBtn.textContent = '+ Add Question';
+                addBtn.addEventListener('click', () => {
+                    const q = { id: 'q-' + Date.now(), level: 3, topic: bank.topics[0] || (MASTER_TOPICS[0] || 'General'), text: '', concept: '', answer: '' };
+                    bank.pool.push(q);
+                    editingQuestionId = q.id;
+                    renderBankModal();
+                });
+                body.appendChild(addBtn);
+            }
+
+            if (bank.pool.length === 0) {
+                const p = document.createElement('p');
+                p.className = 'text-sm text-slate-500 text-center py-4';
+                p.textContent = 'This bank is empty.';
+                body.appendChild(p);
+                return;
+            }
+
+            [1, 2, 3, 4, 5].forEach(level => {
+                const qs = bank.pool.filter(q => q.level === level);
+                if (qs.length === 0) return;
+                const heading = document.createElement('p');
+                heading.className = 'text-xs uppercase tracking-wider text-accent font-semibold mb-2 mt-4 first:mt-0';
+                heading.textContent = `Level ${level} (${qs.length})`;
+                body.appendChild(heading);
+                qs.forEach(q => body.appendChild(
+                    (editable && editingQuestionId === q.id) ? buildEditCard(bank, q) : buildViewCard(bank, q, editable)
+                ));
+            });
+        }
+
+        function buildViewCard(bank, q, editable) {
+            const card = document.createElement('div');
+            card.className = 'p-3 rounded-xl bg-slate-800/40 border border-slate-700/50 mb-2';
+            card.innerHTML = `
+                <div class="flex items-center gap-2 mb-1">
+                    <span class="px-2 py-0.5 rounded text-xs font-mono bg-slate-800 text-accent">L${q.level}</span>
+                    <span class="text-xs text-slate-400 flex-1">${escapeHtml(q.topic)}</span>
+                </div>
+                <p class="text-sm text-slate-200">${escapeHtml(q.text)}</p>
+                ${q.answer ? `<p class="text-xs text-success/90 mt-2"><span class="text-slate-500">Answer: </span>${escapeHtml(q.answer)}</p>` : ''}
+            `;
+            if (editable) {
+                const actions = document.createElement('div');
+                actions.className = 'flex gap-3 mt-2';
+                const edit = document.createElement('button');
+                edit.className = 'text-xs text-accent hover:underline';
+                edit.textContent = 'Edit';
+                edit.addEventListener('click', () => { editingQuestionId = q.id; renderBankModal(); });
+                const del = document.createElement('button');
+                del.className = 'text-xs text-danger hover:underline';
+                del.textContent = 'Delete';
+                del.addEventListener('click', () => {
+                    if (!confirm('Delete this question?')) return;
+                    bank.pool = bank.pool.filter(x => x.id !== q.id);
+                    persistBankChange(bank);
+                    renderBankModal();
+                });
+                actions.appendChild(edit);
+                actions.appendChild(del);
+                card.appendChild(actions);
+            }
+            return card;
+        }
+
+        function buildEditCard(bank, q) {
+            const card = document.createElement('div');
+            card.className = 'p-3 rounded-xl bg-slate-800/60 border border-accent/40 mb-2 space-y-2';
+            const levelOpts = [1, 2, 3, 4, 5].map(l => `<option value="${l}" ${l === q.level ? 'selected' : ''}>Level ${l}</option>`).join('');
+            card.innerHTML = `
+                <textarea class="edit-text w-full bg-slate-800/50 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm resize-y" rows="2" placeholder="Question text">${escapeHtml(q.text)}</textarea>
+                <div class="grid grid-cols-2 gap-2">
+                    <select class="edit-level bg-slate-800/50 border border-slate-700 rounded-lg px-2 py-2 text-white text-sm">${levelOpts}</select>
+                    <input class="edit-topic bg-slate-800/50 border border-slate-700 rounded-lg px-2 py-2 text-white text-sm" value="${escapeHtml(q.topic)}" placeholder="Topic">
+                </div>
+                <textarea class="edit-answer w-full bg-slate-800/50 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm resize-y" rows="2" placeholder="Model answer (optional)">${escapeHtml(q.answer || '')}</textarea>
+                <div class="flex gap-3">
+                    <button class="edit-save flex-1 btn-primary text-white font-semibold py-1.5 px-3 rounded-lg text-sm">Save</button>
+                    <button class="edit-cancel flex-1 bg-slate-700 hover:bg-slate-600 text-white py-1.5 px-3 rounded-lg text-sm">Cancel</button>
+                </div>
+            `;
+            card.querySelector('.edit-save').addEventListener('click', () => {
+                const text = card.querySelector('.edit-text').value.trim();
+                if (!text) { alert('Question text cannot be empty.'); return; }
+                q.text = text;
+                q.level = Math.min(5, Math.max(1, parseInt(card.querySelector('.edit-level').value, 10) || 3));
+                q.topic = card.querySelector('.edit-topic').value.trim() || (MASTER_TOPICS[0] || 'General');
+                q.answer = card.querySelector('.edit-answer').value.trim();
+                q.concept = q.concept || q.answer || q.text;
+                editingQuestionId = null;
+                persistBankChange(bank);
+                renderBankModal();
+            });
+            card.querySelector('.edit-cancel').addEventListener('click', () => {
+                if (!q.text) bank.pool = bank.pool.filter(x => x.id !== q.id); // discard blank new question
+                editingQuestionId = null;
+                persistBankChange(bank);
+                renderBankModal();
+            });
+            return card;
+        }
+
+        // Collect every answer with the given verdict from the finished session into a persistent bank.
+        function collectToBank(verdict, bankId, bankName) {
+            const matches = sessionLog.filter(e => e.verdict === verdict);
+            if (matches.length === 0) { alert(`No ${verdict.toLowerCase()} answers in this session — nothing to add.`); return; }
+
+            let bank = savedBanks.find(b => b.id === bankId);
+            if (!bank) {
+                bank = { id: bankId, name: bankName, date: new Date().toISOString(), topics: [], split: {}, pool: [], custom: true };
+                savedBanks.unshift(bank);
+            }
+            const existing = new Set(bank.pool.map(q => (q.text || '').trim().toLowerCase()));
+            let added = 0;
+            matches.forEach(e => {
+                const key = (e.question || '').trim().toLowerCase();
+                if (!key || existing.has(key)) return;
+                existing.add(key);
+                bank.pool.push({
+                    id: 'rb-' + Date.now() + '-' + added,
+                    level: e.level,
+                    topic: e.topic || (MASTER_TOPICS[0] || 'General'),
+                    text: e.question,
+                    concept: e.concept || e.answer || e.question,
+                    answer: e.answer || ''
+                });
+                added++;
+            });
+            recomputeBankMeta(bank);
+            saveBanks();
+            refreshBankSelect();
+            if (bank.id === currentBankId) selectBank(currentBankId);
+            alert(added > 0
+                ? `Added ${added} question${added > 1 ? 's' : ''} to "${bankName}" (now ${bank.pool.length} total). Pick it from the Question Bank dropdown to revise.`
+                : `Those answers are already in the "${bankName}" bank.`);
+        }
+
+        function addWrongToBank() { collectToBank('INCORRECT', GOT_WRONG_ID, 'Got Wrong'); }
+        function addPartialToBank() { collectToBank('PARTIAL', GOT_PARTIAL_ID, 'Got Partial'); }
+
+        function deleteBank() {
+            if (currentBankId === 'official' || currentBankId === 'custom') {
+                alert('Built-in banks cannot be deleted.');
+                return;
+            }
+            const bank = savedBanks.find(b => b.id === currentBankId);
+            if (!bank) return;
+            if (!confirm(`Delete "${bank.name}"? This cannot be undone.`)) return;
+            savedBanks = savedBanks.filter(b => b.id !== currentBankId);
+            saveBanks();
+            currentBankId = 'official';
+            refreshBankSelect();
+            selectBank(currentBankId);
+            saveSettings();
+        }
+
+        // ==================== CSV IMPORT ====================
+        function setCsvStatus(msg) {
+            document.getElementById('csv-status').textContent = msg;
+        }
+
+        // Minimal RFC-4180-ish CSV parser: handles quoted fields, escaped quotes, and
+        // commas/newlines inside quotes. Returns an array of row arrays.
+        function parseCSV(text) {
+            const rows = [];
+            let row = [];
+            let field = '';
+            let inQuotes = false;
+            text = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+            for (let i = 0; i < text.length; i++) {
+                const c = text[i];
+                if (inQuotes) {
+                    if (c === '"') {
+                        if (text[i + 1] === '"') { field += '"'; i++; }
+                        else inQuotes = false;
+                    } else field += c;
+                } else if (c === '"') {
+                    inQuotes = true;
+                } else if (c === ',') {
+                    row.push(field); field = '';
+                } else if (c === '\n') {
+                    row.push(field); field = '';
+                    rows.push(row); row = [];
+                } else field += c;
+            }
+            row.push(field);
+            rows.push(row);
+            // Drop fully-empty trailing rows.
+            return rows.filter(r => r.length > 1 || (r[0] && r[0].trim() !== ''));
+        }
+
+        function importCsvFile() {
+            const fileInput = document.getElementById('csv-file');
+            const file = fileInput.files && fileInput.files[0];
+            if (!file) { setCsvStatus('Choose a CSV file first.'); return; }
+
+            const reader = new FileReader();
+            reader.onload = () => {
+                try {
+                    buildBankFromCsv(reader.result, file.name);
+                } catch (e) {
+                    console.error('CSV import failed:', e);
+                    setCsvStatus('Could not read that CSV. Check the format and try again.');
+                }
+            };
+            reader.onerror = () => setCsvStatus('Failed to read the file.');
+            reader.readAsText(file);
+        }
+
+        function buildBankFromCsv(text, fileName) {
+            const rows = parseCSV(text);
+            if (rows.length < 2) { setCsvStatus('CSV needs a header row plus at least one question.'); return; }
+
+            // Map headers (case-insensitive) to column indices.
+            const headers = rows[0].map(h => h.trim().toLowerCase());
+            const col = name => headers.indexOf(name);
+            const iText = col('text') !== -1 ? col('text') : col('question');
+            const iLevel = col('level');
+            const iTopic = col('topic');
+            const iAnswer = col('answer') !== -1 ? col('answer') : col('model answer');
+            const iConcept = col('concept');
+
+            if (iText === -1) {
+                setCsvStatus('CSV must have a "text" (or "question") column in the header row.');
+                return;
+            }
+
+            const pool = [];
+            for (let r = 1; r < rows.length; r++) {
+                const cells = rows[r];
+                const qText = (cells[iText] || '').trim();
+                if (!qText) continue;
+                let level = iLevel !== -1 ? parseInt(cells[iLevel], 10) : 3;
+                if (isNaN(level)) level = 3;
+                level = Math.min(5, Math.max(1, level));
+                const topic = (iTopic !== -1 ? (cells[iTopic] || '').trim() : '') || (MASTER_TOPICS[0] || 'General');
+                const answer = iAnswer !== -1 ? (cells[iAnswer] || '').trim() : '';
+                const concept = iConcept !== -1 ? (cells[iConcept] || '').trim() : '';
+                pool.push({
+                    id: 'csv-' + Date.now() + '-' + r,
+                    level,
+                    topic,
+                    text: qText,
+                    concept: concept || answer || qText, // reference for the grader
+                    answer
+                });
+            }
+
+            if (pool.length === 0) { setCsvStatus('No valid rows found (every row needs question text).'); return; }
+
+            const typed = document.getElementById('csv-name').value.trim();
+            const name = typed || fileName.replace(/\.csv$/i, '') || 'Imported set';
+            const topics = Array.from(new Set(pool.map(q => q.topic)));
+            const split = {};
+            [1, 2, 3, 4, 5].forEach(l => { split[l] = pool.filter(q => q.level === l).length; });
+
+            const newBank = {
+                id: 'csv-' + Date.now(),
+                name,
+                date: new Date().toISOString(),
+                topics,
+                split,
+                pool,
+                custom: true
+            };
+            savedBanks.unshift(newBank);
+            saveBanks();
+            currentBankId = newBank.id;
+            refreshBankSelect();
+            selectBank(currentBankId);
+            saveSettings();
+
+            document.getElementById('csv-file').value = '';
+            document.getElementById('csv-name').value = '';
+            const counts = [1, 2, 3, 4, 5].map(l => `L${l} ${split[l]}`).join(' · ');
+            setCsvStatus(`Imported "${name}": ${pool.length} questions (${counts}).`);
+        }
+
+        // ==================== GENERATION ====================
+        async function generateQuestionSet() {
+
+            const topics = selectedTopics.size > 0 ? Array.from(selectedTopics) : [...MASTER_TOPICS];
+
+            if (totalTarget() > MAX_GEN_TOTAL) {
+                alert(`You can generate at most ${MAX_GEN_TOTAL} questions at once. Lower the per-level counts so the total is ${MAX_GEN_TOTAL} or fewer.`);
+                return;
+            }
+
+            const btnGen = document.getElementById('btn-generate');
+            const btnStart = document.getElementById('btn-start');
+            btnGen.disabled = true;
+            btnGen.classList.add('opacity-50', 'pointer-events-none');
+            btnStart.disabled = true;
+            btnStart.classList.add('cursor-not-allowed', 'opacity-50');
+
+            let newPool = [];
+            const seen = new Set();
+            const summary = [];
+            proxyAuthError = false;
+
+            try {
+                for (const level of [1, 2, 3, 4, 5]) {
+                    const qs = await generateLevelQuestions(level, topics, seen);
+                    newPool.push(...qs);
+                    summary.push(`L${level} ${qs.length}/${targetSplit[level]}`);
+                }
+            } catch (e) {
+                console.error('Generation failed:', e);
+            } finally {
+                btnGen.disabled = false;
+                btnGen.classList.remove('opacity-50', 'pointer-events-none');
+            }
+
+            setGenerateStatus(`Generated ${newPool.length}/${totalTarget()} — ${summary.join(', ')}`);
+
+            if (newPool.length === 0) {
+                alert(proxyAuthError
+                    ? 'Access denied — the passcode is missing or wrong. Set it in AI Configuration.'
+                    : 'Question generation failed. Check your connection and try again.');
+                return;
+            }
+
+            const d = new Date();
+            const when = d.toLocaleDateString([], { day: '2-digit', month: 'short' }) + ' ' + d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            const scope = topics.length >= MASTER_TOPICS.length ? 'All topics' : `${topics.length} topic${topics.length > 1 ? 's' : ''}`;
+
+            const newBank = {
+                id: 'bank-' + Date.now(),
+                name: `${when} · ${newPool.length} Qs · ${scope}`,
+                date: new Date().toISOString(),
+                topics: topics,
+                split: { ...targetSplit },
+                pool: newPool
+            };
+            savedBanks.unshift(newBank);
+            saveBanks();
+            currentBankId = newBank.id;
+            refreshBankSelect();
+            selectBank(currentBankId);
+            saveSettings();
+        }
+
+        async function generateLevelQuestions(level, topics, seen) {
+            const target = Number(targetSplit[level] || 0);
+            const out = [];
+            const maxAttempts = Math.ceil(target / GEN_BATCH) + 2;
+            let attempts = 0;
+
+            while (out.length < target && attempts < maxAttempts) {
+                attempts++;
+                setGenerateStatus(`Generating… Level ${level}: ${out.length}/${target}`);
+                const need = Math.min(GEN_BATCH, target - out.length);
+                const batch = await aiGenerateBatch(level, need, topics);
+
+                for (const item of batch) {
+                    if (out.length >= target) break;
+                    if (!item || typeof item.text !== 'string' || !item.text.trim()) continue;
+                    const key = item.text.trim().toLowerCase();
+                    if (seen.has(key)) continue;
+                    seen.add(key);
+                    const topic = topics.includes(item.topic) ? item.topic : topics[0];
+                    out.push({
+                        id: `gen-L${level}-${out.length + 1}`,
+                        level,
+                        topic,
+                        text: item.text.trim(),
+                        concept: (item.concept || '').toString(),
+                        answer: (item.answer || '').toString()
+                    });
+                }
+            }
+            return out;
+        }
+
+        async function aiGenerateBatch(level, count, topics) {
+            const systemPrompt = "You are a Control Systems professor writing questions for a CONCEPTUAL, SPOKEN oral exam. The student answers OUT LOUD and CANNOT write equations, derive formulas, perform calculations, draw plots or diagrams, or read a specific transfer function. Every question must therefore be answerable verbally with words and intuition alone. STRICTLY AVOID any question that: asks to derive, calculate, compute, solve, evaluate, or find a numeric value; references a specific equation or transfer function; supplies numbers to work with; or asks to sketch, plot, or draw anything. Instead ask conceptual prompts: definitions, the meaning of a concept, why/when/how a technique is used, qualitative effects, comparisons, trade-offs, and intuition. Respond ONLY with a valid JSON array — no markdown fences, no commentary.";
+            const userPrompt = `Generate ${count} distinct Level ${level} control systems oral-exam questions. ` +
+                `Use ONLY these topics: ${topics.join('; ')}. ` +
+                `Every question must be PURELY CONCEPTUAL and answerable in spoken words. ` +
+                `Each array element must be an object with exactly these keys: ` +
+                `"topic" (one of the listed topics), "text" (a single-sentence conceptual question), ` +
+                `"concept" (a 3-8 word summary of the core concepts a correct answer must include), and ` +
+                `"answer" (a concise model answer of 1-3 sentences in plain spoken words, no equations). ` +
+                `Return ONLY the JSON array.`;
+
+            try {
+                const data = await callDeepSeek({
+                    messages: [
+                        { role: "system", content: systemPrompt },
+                        { role: "user", content: userPrompt }
+                    ],
+                    temperature: 0.8,
+                    max_tokens: 4096
+                });
+                if (!data) return [];
+                const content = data.choices?.[0]?.message?.content || "";
+                return parseQuestionArray(content);
+            } catch (error) {
+                console.error('Question generation request failed:', error);
+                return [];
+            }
+        }
+
+        function parseQuestionArray(content) {
+            if (!content) return [];
+            const text = content.replace(/```json/gi, '').replace(/```/g, '').trim();
+            const start = text.indexOf('[');
+            const end = text.lastIndexOf(']');
+            if (start === -1 || end === -1 || end <= start) return [];
+            try {
+                const arr = JSON.parse(text.slice(start, end + 1));
+                return Array.isArray(arr) ? arr : [];
+            } catch (e) {
+                return [];
+            }
+        }
+
+        function setGenerateStatus(msg) {
+            const el = document.getElementById('generate-status');
+            if (el) el.textContent = msg;
+        }
+
+        let proxyAuthError = false; // set true when the proxy rejects the passcode
+        let appPasscode = '';       // validated passcode, used for every AI request
+
+        function getPasscode() {
+            return appPasscode;
+        }
+
+        // ==================== PASSCODE GATE ====================
+        async function validatePasscode(code) {
+            try {
+                const r = await fetch('/api/deepseek', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'x-app-passcode': code },
+                    body: JSON.stringify({ check: true })
+                });
+                return r.ok; // 200 → valid, 401 → wrong
+            } catch (e) {
+                return null; // could not reach the server
+            }
+        }
+
+        function hideGate() {
+            document.getElementById('passcode-gate').classList.add('hidden-view');
+        }
+
+        async function submitGate() {
+            const code = document.getElementById('gate-input').value.trim();
+            const err = document.getElementById('gate-error');
+            const btn = document.getElementById('gate-submit');
+            if (!code) { err.textContent = 'Enter the passcode.'; return; }
+            btn.disabled = true;
+            err.textContent = 'Checking…';
+            const ok = await validatePasscode(code);
+            btn.disabled = false;
+            if (ok === true) {
+                appPasscode = code;
+                localStorage.setItem('cs_exam_passcode', code);
+                err.textContent = '';
+                hideGate();
+            } else if (ok === false) {
+                err.textContent = 'Wrong passcode.';
+            } else {
+                err.textContent = 'Could not reach the server. Try again.';
+            }
+        }
+
+        // On load: keep the gate up until a stored passcode validates (or the user enters one).
+        async function setupGate() {
+            document.getElementById('gate-submit').addEventListener('click', submitGate);
+            document.getElementById('gate-input').addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') submitGate();
+            });
+            const stored = localStorage.getItem('cs_exam_passcode') || '';
+            if (stored) {
+                const ok = await validatePasscode(stored);
+                if (ok === true) { appPasscode = stored; hideGate(); return; }
+                document.getElementById('gate-input').value = stored;
+            }
+            document.getElementById('gate-input').focus();
+        }
+
+        // Single entry point for all AI calls: adds the passcode header and flags auth failures.
+        async function callDeepSeek(payload) {
+            try {
+                const response = await fetch('/api/deepseek', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'x-app-passcode': getPasscode() },
+                    body: JSON.stringify(payload)
+                });
+                if (response.status === 401 || response.status === 403) {
+                    proxyAuthError = true;
+                    return null;
+                }
+                return await response.json();
+            } catch (e) {
+                console.error('Proxy request failed:', e);
+                return null;
+            }
+        }
+
+        function readSplitInputs() {
+            for (let l = 1; l <= 5; l++) {
+                const el = document.getElementById('split-' + l);
+                let v = parseInt(el.value, 10);
+                if (isNaN(v) || v < 0) v = 0;
+                v = Math.min(300, v);
+                el.value = v;
+                targetSplit[l] = v;
+            }
+            const total = totalTarget();
+            const totalEl = document.getElementById('split-total');
+            const over = total > MAX_GEN_TOTAL;
+            totalEl.textContent = over ? `${total} (max ${MAX_GEN_TOTAL})` : total;
+            totalEl.classList.toggle('text-danger', over);
+            totalEl.classList.toggle('text-white', !over);
+        }
+
+        function loadBanks() {
+            try { savedBanks = JSON.parse(localStorage.getItem('cs_exam_banks') || '[]'); }
+            catch (e) { savedBanks = []; }
+            if (!Array.isArray(savedBanks)) savedBanks = [];
+        }
+
+        function saveBanks() {
+            localStorage.setItem('cs_exam_banks', JSON.stringify(savedBanks.slice(0, 50)));
+        }
+
+        // ==================== EXAM SESSION ====================
+        function pickNextQuestion(level) {
+            for (let d = 0; d < 5; d++) {
+                const levelsToTry = d === 0 ? [level] : [level - d, level + d];
+                for (const lvl of levelsToTry) {
+                    if (lvl < 1 || lvl > 5) continue;
+                    const candidates = questionPool.filter(q => q.level === lvl && !askedIds.has(q.id));
+                    if (candidates.length > 0) {
+                        return candidates[Math.floor(Math.random() * candidates.length)];
+                    }
+                }
+            }
+            return null;
+        }
+
+        function startExam() {
+            if (questionPool.length === 0) return;
+
+            askedIds = new Set();
+            currentQuestion = null;
+            currentLevel = 3;
+            examBusy = false;
+            gradingChain = Promise.resolve();
+            sessionScores = [];
+            sessionLog = [];
+            timeRemaining = examDuration * 60;
+            sessionStartTime = Date.now();
+            
+            switchView('exam');
+            startTimer();
+            showQuestion();
+        }
+
+        function startTimer() {
+            if (timerInterval) clearInterval(timerInterval);
+            updateTimerDisplay();
+            timerInterval = setInterval(() => {
+                timeRemaining--;
+                updateTimerDisplay();
+                if (timeRemaining <= 0) {
+                    stopExam();
+                }
+            }, 1000);
+        }
+
+        function updateTimerDisplay() {
+            const t = Math.max(0, timeRemaining);
+            const mins = Math.floor(t / 60);
+            const secs = t % 60;
+            const el = document.getElementById('exam-timer');
+            if (el) el.textContent = `${mins}:${secs.toString().padStart(2, '0')}`;
+        }
+
+        function showQuestion() {
+            currentTranscript = '';
+            finalTranscript = '';
+            document.getElementById('live-transcript').textContent = '';
+            document.getElementById('transcript-container').classList.add('hidden');
+            if (isRecording) toggleRecording();
+
+            const q = pickNextQuestion(currentLevel);
+            if (!q) {
+                currentQuestion = null;
+                stopExam();
+                return;
+            }
+
+            currentQuestion = q;
+            currentLevel = q.level;
+            askedIds.add(q.id);
+            document.getElementById('exam-question-text').textContent = q.text;
+        }
+
+        async function nextQuestion() {
+            if (examBusy || !currentQuestion) return;
+
+            const q = currentQuestion;
+            const answered = currentTranscript.trim().length > 0;
+            const status = answered ? "GRADE" : "SKIP";
+            const transcript = answered ? currentTranscript : "";
+
+            currentQuestion = null;
+            currentTranscript = '';
+
+            await runGrading(q, status, transcript);
+            if (timerInterval !== null) showQuestion();
+        }
+
+        async function skipQuestion() {
+            if (examBusy || !currentQuestion) return;
+
+            const q = currentQuestion;
+            currentQuestion = null;
+            currentTranscript = '';
+
+            await runGrading(q, "SKIP", "");
+            if (timerInterval !== null) showQuestion();
+        }
+
+        async function runGrading(question, status, transcript) {
+            examBusy = true;
+            setExamBusy(true);
+            gradingChain = gradingChain.then(() => handleGrading(question, status, transcript));
+            await gradingChain;
+            examBusy = false;
+            setExamBusy(false);
+        }
+
+        function setExamBusy(busy) {
+            const status = document.getElementById('exam-status');
+            if (status) status.textContent = busy ? 'Evaluating your answer…' : '';
+            ['btn-next', 'btn-skip', 'btn-record', 'btn-stop-exam'].forEach(id => {
+                const el = document.getElementById(id);
+                if (!el) return;
+                el.disabled = busy;
+                el.classList.toggle('opacity-40', busy);
+                el.classList.toggle('pointer-events-none', busy);
+            });
+        }
+
+        async function stopExam() {
+            if (timerInterval) {
+                clearInterval(timerInterval);
+                timerInterval = null;
+            }
+
+            if (currentQuestion && currentTranscript.trim().length > 0) {
+                const q = currentQuestion;
+                const transcript = currentTranscript;
+                currentQuestion = null;
+                currentTranscript = '';
+                gradingChain = gradingChain.then(() => handleGrading(q, "GRADE", transcript));
+            }
+
+            setExamBusy(true);
+            await gradingChain;
+            setExamBusy(false);
+
+            switchView('review');
+            renderReview();
+            saveSession();
+        }
+
+        async function handleGrading(question, status, transcript) {
+            let score, verdict, critique;
+
+            // A skip or an empty/whitespace answer always counts as wrong — never sent to the AI.
+            if (status !== "SKIP" && (!transcript || !transcript.trim())) {
+                status = "SKIP";
+            }
+
+            if (status === "SKIP") {
+                verdict = "INCORRECT";
+                score = currentLevel - 1;                       
+                currentLevel = Math.max(1, currentLevel - 1);   
+                critique = "Question was skipped. No answer provided.";
+            } else {
+                const result = await gradeWithAI(question, transcript);
+                verdict = result.verdict;
+                score = result.score;
+                critique = result.critique;
+                currentLevel = result.levelAfter;
+            }
+
+            sessionLog.push({
+                questionId: question.id,
+                question: question.text,
+                topic: question.topic,
+                level: question.level,
+                transcript: transcript,
+                verdict: verdict,
+                score: score,
+                levelAfter: currentLevel,
+                critique: critique,
+                answer: question.answer || question.concept || '',
+                concept: question.concept || '',
+                timestamp: Date.now()
+            });
+            sessionScores.push({ questionId: question.id, score: score, level: question.level, time: Date.now() });
+        }
+
+        async function gradeWithAI(question, transcript) {
+            const systemPrompt = `You are a fair and encouraging Control Systems professor running a CONCEPTUAL oral exam. The answer is a speech-to-text transcript, so ignore grammar, filler words, transcription errors, and imprecise wording — judge ONLY whether the student grasps the underlying concept. Be generous: award 'CORRECT' when the student conveys the main idea, even if incomplete or loosely worded; award 'PARTIAL' when they show some genuine understanding but miss a key part; reserve 'INCORRECT' only for answers that are essentially wrong, empty, or off-topic. When torn between two verdicts, choose the more favourable one. Respond ONLY with a valid JSON object with keys: 'verdict' (exactly 'CORRECT', 'PARTIAL', or 'INCORRECT') and 'critique' (at most two encouraging sentences noting what they got right and what to refine).`;
+            const userPrompt = `Question (Level ${question.level}, Topic: ${question.topic}): ${question.text}\n\nStudent Transcript: "${transcript}"\n\nCore concepts to evaluate: ${question.concept}`;
+            
+            try {
+                const data = await callDeepSeek({
+                    messages: [
+                        { role: "system", content: systemPrompt },
+                        { role: "user", content: userPrompt }
+                    ],
+                    temperature: 0.3,
+                    max_tokens: 200
+                });
+                if (!data) {
+                    const msg = proxyAuthError ? 'Access denied — check the passcode in AI Configuration.' : 'AI grading failed (network/server error).';
+                    return { verdict: "PARTIAL", critique: msg, score: currentLevel, levelAfter: currentLevel };
+                }
+                const content = data.choices?.[0]?.message?.content || "";
+
+                let result;
+                try {
+                    const jsonMatch = content.match(/\{[\s\S]*\}/);
+                    result = jsonMatch ? JSON.parse(jsonMatch[0]) : { verdict: "PARTIAL", critique: "Could not parse AI response." };
+                } catch (e) {
+                    result = { verdict: "PARTIAL", critique: "AI response parsing failed." };
+                }
+                
+                const verdict = ["CORRECT", "PARTIAL", "INCORRECT"].includes(result.verdict) ? result.verdict : "PARTIAL";
+                let newLevel = currentLevel;
+                let score;
+                
+                if (verdict === "CORRECT") {
+                    score = currentLevel + 1;                   
+                    newLevel = Math.min(5, currentLevel + 1);   
+                } else if (verdict === "PARTIAL") {
+                    score = currentLevel;
+                } else {
+                    score = currentLevel - 1;                   
+                    newLevel = Math.max(1, currentLevel - 1);   
+                }
+                
+                return { verdict, critique: result.critique || "No critique provided.", score, levelAfter: newLevel };
+                
+            } catch (error) {
+                console.error("AI grading error:", error);
+                
+                // Fallback Mock Grading if API fails or no API Key
+                const mockVerdicts = ["CORRECT", "PARTIAL", "INCORRECT"];
+                const fbVerdict = mockVerdicts[Math.floor(Math.random() * mockVerdicts.length)];
+                let fbScore = fbVerdict === "CORRECT" ? currentLevel + 1 : fbVerdict === "PARTIAL" ? currentLevel : currentLevel - 1;
+                let fbNewLevel = fbVerdict === "CORRECT" ? Math.min(5, currentLevel + 1) : fbVerdict === "PARTIAL" ? currentLevel : Math.max(1, currentLevel - 1);
+                
+                return { verdict: fbVerdict, critique: "AI grading failed (Network/API Error). This is a mock grade.", score: fbScore, levelAfter: fbNewLevel };
+            }
+        }
+
+        // ==================== SPEECH RECOGNITION ====================
+        function setupSpeechRecognition() {
+            if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+                console.warn('Speech recognition not supported');
+                return;
+            }
+            
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            recognition = new SpeechRecognition();
+            recognition.continuous = true;
+            recognition.interimResults = true;
+            recognition.maxAlternatives = 1;
+            recognition.lang = recognitionLang;
+            
+            recognition.onresult = (event) => {
+                let interimTranscript = '';
+                for (let i = event.resultIndex; i < event.results.length; i++) {
+                    const transcript = event.results[i][0].transcript;
+                    if (event.results[i].isFinal) {
+                        finalTranscript += transcript + ' ';
+                    } else {
+                        interimTranscript += transcript;
+                    }
+                }
+                currentTranscript = (finalTranscript + interimTranscript).trim();
+                ['live-transcript', 'learn-transcript'].forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el) el.textContent = currentTranscript;
+                });
+                ['transcript-container', 'learn-transcript-container'].forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el) el.classList.remove('hidden');
+                });
+            };
+            
+            recognition.onstart = () => {
+                isRecording = true;
+                updateRecordButton();
+            };
+
+            recognition.onerror = (event) => {
+                console.error('Speech recognition error:', event.error);
+                // 'no-speech' and 'aborted' are benign — let onend handle the restart.
+                if (event.error === 'no-speech' || event.error === 'aborted') return;
+
+                isRecording = false;
+                manualStop = true; // stop the auto-restart loop
+                updateRecordButton();
+
+                let msg;
+                switch (event.error) {
+                    case 'not-allowed':
+                    case 'service-not-allowed':
+                        msg = 'Microphone is blocked. Click the lock/🔒 icon in the address bar and allow the mic, then on Windows check Settings → Privacy & security → Microphone (enable mic access for your browser). Reload after allowing.';
+                        break;
+                    case 'audio-capture':
+                        msg = 'No microphone was detected. Make sure one is plugged in and enabled in Windows sound settings.';
+                        break;
+                    case 'network':
+                        msg = 'The speech-recognition service could not be reached. Check your internet connection and try again.';
+                        break;
+                    default:
+                        msg = 'Microphone error (' + event.error + '). Please try again.';
+                }
+                showMicError(msg);
+            };
+
+            recognition.onend = () => {
+                // Keep listening across natural pauses, unless the user stopped or an error occurred.
+                if (isRecording && !manualStop) {
+                    try { recognition.start(); } catch (e) { /* already starting */ }
+                } else {
+                    isRecording = false;
+                    updateRecordButton();
+                }
+                manualStop = false;
+            };
+        }
+
+        function showMicError(msg) {
+            ['exam-status', 'learn-status'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.textContent = '';
+            });
+            alert(msg);
+        }
+
+        async function toggleRecording() {
+            if (!recognition) {
+                alert('Speech recognition is not supported in this browser. Please use Google Chrome or Microsoft Edge (it does not work in Firefox).');
+                return;
+            }
+
+            if (isRecording) {
+                manualStop = true;
+                try { recognition.stop(); } catch (e) { /* ignore */ }
+                isRecording = false;
+                updateRecordButton();
+                return;
+            }
+
+            // Proactively request mic permission — this reliably surfaces Windows permission issues.
+            try {
+                if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    stream.getTracks().forEach(t => t.stop()); // release; recognition opens its own stream
+                }
+            } catch (e) {
+                console.error('getUserMedia failed:', e);
+                showMicError('Microphone access was denied or unavailable. Allow the mic for this site (address-bar lock icon) and enable it in Windows Settings → Privacy & security → Microphone, then try again.');
+                return;
+            }
+
+            currentTranscript = '';
+            finalTranscript = '';
+            manualStop = false;
+            try {
+                recognition.start();
+                isRecording = true; // confirmed again in onstart
+            } catch (e) {
+                console.error('recognition.start failed:', e);
+                try { recognition.stop(); } catch (_) {}
+                isRecording = false;
+                showMicError('Could not start the microphone. Please try again.');
+            }
+            updateRecordButton();
+        }
+
+        function updateRecordButton() {
+            ['btn-record', 'btn-learn-record'].forEach(id => {
+                const btn = document.getElementById(id);
+                if (!btn) return;
+                if (isRecording) {
+                    btn.classList.add('recording-pulse', 'border-danger', 'text-danger');
+                    btn.classList.remove('border-slate-600', 'text-slate-300');
+                } else {
+                    btn.classList.remove('recording-pulse', 'border-danger', 'text-danger');
+                    btn.classList.add('border-slate-600', 'text-slate-300');
+                }
+            });
+        }
+
+        // ==================== LEARN MODE ====================
+        function startLearnMode() {
+            learnTopics = selectedTopics.size > 0 ? Array.from(selectedTopics) : [...MASTER_TOPICS];
+            currentLevel = 3;
+            learnSeen = new Set();
+            learnQuestion = null;
+            learnStats = { correct: 0, partial: 0, wrong: 0, total: 0 };
+            document.getElementById('learn-topic').textContent = selectedTopics.size > 0 ? Array.from(selectedTopics).join(', ') : 'All topics';
+            switchView('learn');
+            showLearnQuestion();
+        }
+
+        function updateLearnHud() {
+            document.getElementById('learn-level').textContent = 'Level ' + currentLevel;
+            const s = learnStats;
+            document.getElementById('learn-stats').textContent = `✓ ${s.correct}   ~ ${s.partial}   ✗ ${s.wrong}`;
+        }
+
+        // Generate the next Learn Mode question with AI at the current (adaptive) difficulty level.
+        async function showLearnQuestion() {
+            currentTranscript = '';
+            finalTranscript = '';
+            if (isRecording) toggleRecording();
+            document.getElementById('learn-transcript').textContent = '';
+            document.getElementById('learn-transcript-container').classList.add('hidden');
+            document.getElementById('learn-feedback').classList.add('hidden');
+            document.getElementById('btn-learn-next').classList.add('hidden');
+            ['btn-learn-check', 'btn-learn-reveal', 'btn-learn-record'].forEach(id => document.getElementById(id).classList.remove('hidden'));
+
+            // Show a loading state while the AI writes a fresh question.
+            learnQuestion = null;
+            setLearnBusy(true);
+            document.getElementById('learn-status').textContent = `Generating a Level ${currentLevel} question…`;
+            document.getElementById('learn-question-text').textContent = '…';
+            updateLearnHud();
+
+            let q = null;
+            for (let attempt = 0; attempt < 3 && !q; attempt++) {
+                const batch = await aiGenerateBatch(currentLevel, 1, learnTopics);
+                const item = batch.find(it => it && typeof it.text === 'string' && it.text.trim() && !learnSeen.has(it.text.trim().toLowerCase()));
+                if (item) {
+                    const topic = learnTopics.includes(item.topic) ? item.topic : learnTopics[0];
+                    q = {
+                        id: 'learn-' + Date.now(),
+                        level: currentLevel,
+                        topic,
+                        text: item.text.trim(),
+                        concept: (item.concept || '').toString(),
+                        answer: (item.answer || '').toString()
+                    };
+                }
+            }
+
+            setLearnBusy(false);
+            document.getElementById('learn-status').textContent = '';
+
+            if (!q) {
+                document.getElementById('learn-question-text').textContent = 'Could not generate a question — check your API key/network and press Next to retry.';
+                ['btn-learn-check', 'btn-learn-reveal', 'btn-learn-record'].forEach(id => document.getElementById(id).classList.add('hidden'));
+                document.getElementById('btn-learn-next').classList.remove('hidden');
+                return;
+            }
+
+            learnSeen.add(q.text.trim().toLowerCase());
+            learnQuestion = q;
+            document.getElementById('learn-question-text').textContent = q.text;
+            updateLearnHud();
+        }
+
+        function setLearnBusy(busy) {
+            document.getElementById('learn-status').textContent = busy ? 'Evaluating…' : '';
+            ['btn-learn-check', 'btn-learn-reveal', 'btn-learn-record'].forEach(id => {
+                const el = document.getElementById(id);
+                el.disabled = busy;
+                el.classList.toggle('opacity-40', busy);
+                el.classList.toggle('pointer-events-none', busy);
+            });
+        }
+
+        function showLearnFeedback(verdict, critique, q) {
+            const vEl = document.getElementById('learn-verdict');
+            let cls = 'verdict-partial', label = 'Reviewed';
+            if (verdict === 'CORRECT') { cls = 'verdict-correct'; label = 'Correct'; }
+            else if (verdict === 'PARTIAL') { cls = 'verdict-partial'; label = 'Partially correct'; }
+            else if (verdict === 'INCORRECT') { cls = 'verdict-incorrect'; label = 'Incorrect'; }
+            vEl.className = 'rounded-xl p-4 border mb-3 ' + cls;
+            vEl.innerHTML = `<p class="text-sm font-semibold">${label}</p>${critique ? `<p class="text-xs mt-1 opacity-90">${escapeHtml(critique)}</p>` : ''}`;
+            document.getElementById('learn-answer').textContent = q.answer || q.concept || '(no model answer stored for this question)';
+            document.getElementById('learn-feedback').classList.remove('hidden');
+
+            ['btn-learn-check', 'btn-learn-reveal', 'btn-learn-record'].forEach(id => document.getElementById(id).classList.add('hidden'));
+            document.getElementById('btn-learn-next').classList.remove('hidden');
+            if (isRecording) toggleRecording();
+        }
+
+        async function checkLearnAnswer() {
+            if (examBusy || !learnQuestion) return;
+            const q = learnQuestion;
+            const transcript = currentTranscript.trim();
+
+            if (!transcript) {
+                learnStats.wrong++; learnStats.total++;
+                currentLevel = Math.max(1, currentLevel - 1);
+                showLearnFeedback('INCORRECT', 'No answer detected — study the model answer below, then continue.', q);
+                updateLearnHud();
+                return;
+            }
+
+            examBusy = true;
+            setLearnBusy(true);
+            const result = await gradeWithAI(q, transcript);
+            examBusy = false;
+            setLearnBusy(false);
+
+            if (result.verdict === 'CORRECT') learnStats.correct++;
+            else if (result.verdict === 'PARTIAL') learnStats.partial++;
+            else learnStats.wrong++;
+            learnStats.total++;
+            currentLevel = result.levelAfter; // adapt difficulty
+            showLearnFeedback(result.verdict, result.critique, q);
+            updateLearnHud();
+        }
+
+        function revealLearnAnswer() {
+            if (examBusy || !learnQuestion) return;
+            const q = learnQuestion;
+            currentLevel = Math.max(1, currentLevel - 1); // ease off since the answer was needed
+            showLearnFeedback(null, 'Answer revealed — try to recall it next time. Difficulty eased slightly.', q);
+            updateLearnHud();
+        }
+
+        function endLearn() {
+            if (isRecording) toggleRecording();
+            switchView('dashboard');
+            updatePreview();
+        }
+
+        // ==================== REVIEW & ANALYTICS ====================
+        function renderReview() {
+            const answered = sessionLog.filter(e => e.verdict !== "PENDING");
+            const last3 = answered.slice(-3);
+            const finalGrade = last3.length > 0 
+                ? (last3.reduce((sum, e) => sum + e.score, 0) / last3.length).toFixed(2)
+                : "0.00";
+            
+            document.getElementById('final-grade').textContent = finalGrade;
+            
+            let label = "Needs Improvement";
+            const gradeNum = parseFloat(finalGrade);
+            if (gradeNum >= 4.5) label = "Excellent";
+            else if (gradeNum >= 3.5) label = "Good";
+            else if (gradeNum >= 2.5) label = "Average";
+            else if (gradeNum >= 1.5) label = "Below Average";
+            document.getElementById('grade-label').textContent = label;
+            
+            document.getElementById('review-total-q').textContent = answered.length;
+            const timeUsed = Math.floor((Date.now() - sessionStartTime) / 1000);
+            const mins = Math.floor(timeUsed / 60);
+            const secs = timeUsed % 60;
+            document.getElementById('review-time').textContent = `${mins}:${secs.toString().padStart(2, '0')}`;
+            
+            renderChart();
+            
+            const tbody = document.getElementById('receipts-body');
+            tbody.innerHTML = '';
+            
+            sessionLog.forEach((entry, i) => {
+                const row = document.createElement('tr');
+                row.className = 'border-b border-slate-800/50 hover:bg-slate-800/20 transition-colors';
+                
+                const verdictClass = entry.verdict === 'CORRECT' ? 'verdict-correct' : 
+                                     entry.verdict === 'PARTIAL' ? 'verdict-partial' : 
+                                     entry.verdict === 'INCORRECT' ? 'verdict-incorrect' : 'text-slate-500';
+                
+                row.innerHTML = `
+                    <td class="py-4 pr-4 text-slate-400">${i + 1}</td>
+                    <td class="py-4 pr-4 text-slate-300 max-w-xs truncate" title="${entry.question}">${entry.question}</td>
+                    <td class="py-4 pr-4"><span class="px-2 py-1 rounded-lg text-xs font-mono bg-slate-800 text-accent">L${entry.level}</span></td>
+                    <td class="py-4 pr-4 text-slate-400 max-w-xs truncate" title="${entry.transcript || '(no transcript)'}">${entry.transcript || '<span class="italic text-slate-600">(no transcript)</span>'}</td>
+                    <td class="py-4 pr-4"><span class="px-2 py-1 rounded-lg text-xs font-semibold border ${verdictClass}">${entry.verdict}</span></td>
+                    <td class="py-4 pr-4 font-mono text-white">${entry.score}</td>
+                    <td class="py-4 pr-4 text-slate-400 max-w-sm">${entry.critique}</td>
+                    <td class="py-4 text-success/90 max-w-sm">${entry.answer || '<span class="italic text-slate-600">—</span>'}</td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        function renderChart() {
+            const ctx = document.getElementById('difficulty-chart').getContext('2d');
+            if (chartInstance) chartInstance.destroy();
+            
+            const labels = sessionLog.map((_, i) => `Q${i + 1}`);
+            const data = sessionLog.map(e => e.level); 
+            
+            chartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Difficulty Level',
+                        data: data,
+                        borderColor: '#38bdf8',
+                        backgroundColor: 'rgba(56, 189, 248, 0.1)',
+                        borderWidth: 3,
+                        pointBackgroundColor: '#0f172a',
+                        pointBorderColor: '#38bdf8',
+                        pointBorderWidth: 2,
+                        pointRadius: 6,
+                        pointHoverRadius: 8,
+                        fill: true,
+                        tension: 0.3
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: 'rgba(15, 23, 42, 0.9)',
+                            titleColor: '#38bdf8',
+                            bodyColor: '#e2e8f0',
+                            borderColor: 'rgba(56, 189, 248, 0.2)',
+                            borderWidth: 1,
+                            padding: 12,
+                            displayColors: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            min: 0.5,
+                            max: 5.5,
+                            ticks: { stepSize: 1, color: '#64748b', font: { family: 'Inter', size: 11 } },
+                            grid: { color: 'rgba(100, 116, 139, 0.1)' }
+                        },
+                        x: {
+                            ticks: { color: '#64748b', font: { family: 'Inter', size: 11 } },
+                            grid: { color: 'rgba(100, 116, 139, 0.1)' }
+                        }
+                    }
+                }
+            });
+        }
+
+        // ==================== PERSISTENCE ====================
+        function saveSettings() {
+            const settings = {
+                recognitionLang: recognitionLang,
+                currentBankId: currentBankId,
+                examDuration: examDuration,
+                split: targetSplit,
+            };
+            localStorage.setItem('cs_exam_settings', JSON.stringify(settings));
+        }
+
+        function loadSettings() {
+            const saved = localStorage.getItem('cs_exam_settings');
+            if (saved) {
+                const settings = JSON.parse(saved);
+                if (settings.recognitionLang) {
+                    recognitionLang = settings.recognitionLang;
+                    document.getElementById('mic-lang').value = recognitionLang;
+                }
+                if (settings.currentBankId) currentBankId = settings.currentBankId;
+                if (settings.examDuration) {
+                    examDuration = settings.examDuration;
+                    document.getElementById('exam-duration').value = examDuration;
+                }
+                if (settings.split) {
+                    targetSplit = settings.split;
+                    for (let l = 1; l <= 5; l++) {
+                        const el = document.getElementById('split-' + l);
+                        if (el) el.value = targetSplit[l] != null ? targetSplit[l] : 0;
+                    }
+                    document.getElementById('split-total').textContent = totalTarget();
+                }
+            }
+        }
+
+        function saveSession() {
+            const sessions = JSON.parse(localStorage.getItem('cs_exam_sessions') || '[]');
+            const session = {
+                id: Date.now(),
+                date: new Date().toISOString(),
+                bank: getBankById(currentBankId)?.name || 'Unknown',
+                topics: Array.from(selectedTopics),
+                totalQuestions: sessionLog.length,
+                finalGrade: document.getElementById('final-grade').textContent,
+                timeUsed: document.getElementById('review-time').textContent,
+                log: sessionLog
+            };
+            sessions.unshift(session);
+            localStorage.setItem('cs_exam_sessions', JSON.stringify(sessions.slice(0, 50)));
+            loadPastSessions();
+        }
+
+        function loadPastSessions() {
+            const sessions = JSON.parse(localStorage.getItem('cs_exam_sessions') || '[]');
+            const container = document.getElementById('past-sessions');
+            
+            if (sessions.length === 0) {
+                container.innerHTML = '<p class="text-sm text-slate-500 text-center py-4">No sessions yet</p>';
+                return;
+            }
+            
+            container.innerHTML = '';
+            sessions.slice(0, 10).forEach(session => {
+                const date = new Date(session.date);
+                const div = document.createElement('div');
+                div.className = 'flex items-center justify-between p-3 rounded-xl bg-slate-800/30 border border-slate-700/50 hover:bg-slate-800/50 transition-all cursor-pointer';
+                div.innerHTML = `
+                    <div>
+                        <p class="text-sm text-white font-medium">Session — ${session.totalQuestions} Qs</p>
+                        <p class="text-xs text-slate-500">${date.toLocaleDateString()} ${date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</p>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-lg font-bold text-accent">${session.finalGrade}</p>
+                    </div>
+                `;
+                div.addEventListener('click', () => loadSession(session));
+                container.appendChild(div);
+            });
+        }
+
+        function loadSession(session) {
+            sessionLog = session.log;
+            sessionScores = session.log.map(e => ({ questionId: e.questionId, score: e.score, level: e.level, time: e.timestamp }));
+            sessionStartTime = new Date(session.date).getTime();
+            switchView('review');
+            renderReview();
+        }
+
+        function downloadSession() {
+            const session = {
+                id: Date.now(),
+                date: new Date().toISOString(),
+                bank: getBankById(currentBankId)?.name || 'Unknown',
+                topics: Array.from(selectedTopics),
+                totalQuestions: sessionLog.length,
+                finalGrade: document.getElementById('final-grade').textContent,
+                timeUsed: document.getElementById('review-time').textContent,
+                log: sessionLog
+            };
+            
+            const blob = new Blob([JSON.stringify(session, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `cs_exam_session_${Date.now()}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        // ==================== NAVIGATION ====================
+        function switchView(viewName) {
+            Object.keys(views).forEach(key => {
+                views[key].classList.add('hidden-view');
+            });
+            views[viewName].classList.remove('hidden-view');
+            views[viewName].classList.add('fade-in');
+        }
+
+        function backToDashboard() {
+            switchView('dashboard');
+            updatePreview();
+        }
+
+        init();
+    </script>
+</body>
+</html>
+
+```
